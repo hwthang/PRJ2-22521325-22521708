@@ -1,17 +1,17 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import AuthLayout from "../../layouts/AuthLayout";
+import LoginView from "./views/LoginView";
+import RegisterView from "./views/RegisterView";
+import ForgotPasswordView from "./views/ForgotPasswordView";
 
 function AuthRoutes() {
   return (
     <Routes>
       <Route path="/" element={<AuthLayout />}>
-        <Route index element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
-        <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        <Route index element={<LoginView/>} />
+        <Route path='register' element={<RegisterView/>} />
+        <Route path='forgot-password' element={<ForgotPasswordView/>} />
       </Route>
     </Routes>
   );
