@@ -3,3 +3,7 @@
 button{
     cursor: pointer;
 }
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
