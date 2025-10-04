@@ -12,7 +12,6 @@ import { BsFillBarChartFill } from "react-icons/bs";
 
 function LeftNavigation() {
   const [showNav, setShowNav] = useState(false);
-  const role = "admin";
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -36,14 +35,8 @@ function LeftNavigation() {
       ref={dropdownRef}
       className={`${
         showNav ? "w-60" : "w-16 "
-      } flex flex-col justify-start relative border-r-1 hide-scrollbar py-10 text-blue-900 overflow-auto transition-all duration-500 ease-in-out`}
+      } flex h-full flex-col justify-start relative border-r-1 hide-scrollbar py-10 text-blue-900 overflow-auto transition-all duration-500 ease-in-out`}
     >
-      {/* <div
-        onClick={() => setShowNav((prev) => !prev)}
-        className={`absolute top-5 -right-5 bg-white rounded-full border-2 aspect-square flex justify-center items-center h-10 w-10 cursor-pointer hover:text-blue-600`}
-      >
-        <FiMenu size={24} />
-      </div> */}
       <NavItem
         label={"Trang chủ"}
         icon={<RiBubbleChartFill size={24} />}
