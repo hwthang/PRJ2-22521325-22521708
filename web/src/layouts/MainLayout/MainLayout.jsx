@@ -2,19 +2,24 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import { BiSolidDashboard } from "react-icons/bi";
 import LeftNavigation from "./LeftNavigation";
-import RightChatList from "./RightChatList";
+import RightChatPopup from "./RightChatPopup";
 import Header from "./Header";
 
-function MainLayout({children}) {
+function MainLayout() {
   return (
-    <div className=" relative z-0 border-box flex flex-col h-screen w-screen overflow-auto">
-      <Header />
-      <div className="flex-1 flex h-full overflow-hidden">
-        <LeftNavigation/>
-        <div className="flex-1 overflow-auto bg-gray-100">
+    <div className="relative flex flex-col h-screen w-screen text-blue-900">
+      <div className="h-[10vh] w-full bg-blue-950">
+        <Header />
+      </div>
+      <div className="relative flex h-[90vh] max-w-[100vw] overflow-auto">
+        <div className="w-fit">
+          <LeftNavigation />
+        </div>
+        <div className="h-full w-full bg-gray-200 overflow-auto" >
           <Outlet/>
         </div>
-        <RightChatList/>
+       
+      
       </div>
     </div>
   );
