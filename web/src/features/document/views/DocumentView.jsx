@@ -325,7 +325,7 @@ function DocumentListView() {
 
   // Handler
   const handleSearchClick = () => {
-    console.log("🔍 Search data:", {
+    console.log("Search data:", {
       searchText,
       types,
       issuers,
@@ -334,14 +334,14 @@ function DocumentListView() {
   };
 
   const handleRefreshClick = () => {
-    console.log("🔄 Làm mới dữ liệu!");
+    console.log("Làm mới dữ liệu!");
     setSearchText("");
     setTypes([]);
     setIssuers([]);
   };
 
   const handleAddDocumentClick = () => {
-    console.log("➕ Thêm tài liệu mới!");
+    console.log("Thêm tài liệu mới!");
   };
 
   return (
