@@ -243,7 +243,7 @@ function ChapterListView() {
   const [statuses, setStatuses] = useState([]);
 
   const handleSearchClick = () => {
-    console.log("🔍 Search:", { searchText, unions, statuses });
+    console.log("Search:", { searchText, unions, statuses });
   };
 
   const handleRefreshClick = () => {
@@ -253,7 +253,7 @@ function ChapterListView() {
   };
 
   const handleAddChapterClick = () => {
-    console.log("➕ Thêm chi đoàn mới");
+    console.log("Thêm chi đoàn mới");
   };
 
   return (
