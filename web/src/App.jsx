@@ -15,6 +15,9 @@ import ProfileView from "./features/profile/views/ProfileView";
 import NotificationView from "./features/notification/views/NotificationView";
 import AccountListView from "./features/account/views/AccountListView";
 import AccountDetailView from "./features/account/views/AccountDetailView";
+import CreateAcountView from "./features/account/views/CreateAccountView";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   return (
@@ -28,8 +31,10 @@ function App() {
 
         <Route path="/cds" element={<MainLayout />}>
           <Route path="dashboard" element={<DashboardView />} />
+
           <Route path="accounts" element={<AccountListView />} />
           <Route path="accounts/:key_account" element={<AccountDetailView/>}/>
+           <Route path="accounts/create" element={<CreateAcountView/>}/>
 
 
           <Route path="chapters" element={<ChapterView />} />
@@ -41,6 +46,17 @@ function App() {
             <Route path="notifications" element={<NotificationView />} />
         </Route>
       </Routes>
+       <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </>
   );
 }

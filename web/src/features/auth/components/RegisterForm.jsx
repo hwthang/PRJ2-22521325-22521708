@@ -1,221 +1,198 @@
 import React, { useEffect, useState } from "react";
-
-import BasicInput from "../../../core/components/Input/BasicInput";
-import PasswordInput from "../../../core/components/Input/PasswordInput";
-import { Link } from "react-router-dom";
-import { useForm } from "../hooks/useForm";
-import { FaChevronLeft } from "react-icons/fa6";
-import { getToday } from "../../../utils/date";
-import ToggleInput from "../../../core/components/Input/ToggleInput";
-import SelectInput from "../../../core/components/Input/SelectInput";
-import AddressInput from "../../../core/components/Input/AddressInput";
+import { Link, NavLink } from "react-router-dom";
+import { BUTTON, INPUT_STYLE } from "../../../utils/styles";
+import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
+import { GENDER } from "../../../utils/map";
+import AuthService from "../services/AuthService";
+import useForm from "../../../core/hooks/useForm";
+import { toast } from "react-toastify";
 
 function RegisterForm() {
-  const registerForm = {
-    username: "",
-    email: "",
-    phone: "",
-    password: "",
-    rePassword: "",
+  const { form, handleChangeFieldInForm } = useForm();
+  const [showPassword, setShowPassword] = useState(false);
+  const [chapters, setChapters] = useState([]);
 
-    fullname: "",
-    birthdate: getToday(),
-    gender: "male",
-    address: {
-      province: "",
-      commune: "",
-      details: "",
-    },
-
-    cardCode: "",
-    joinedDate: getToday(),
-    chapter: "",
+  const handleRegister = async () => {
+    await AuthService.register(form);
   };
 
-  const { form, resetForm, handleChange } = useForm(registerForm);
-  const maxStep = 2;
-  const [step, setStep] = useState(0);
+  const fetchChapters = async () => {
+    const data = await AuthService.getChapters();
+
+    setChapters(
+      data.map((item) => ({
+        chapterCode: item.chapterCode,
+        label: `${item.name}, ${item.affiliated}`,
+      }))
+    );
+  };
+
   useEffect(() => {
-    console.log(form);
-  }, [form]);
+    fetchChapters();
+  }, []);
 
-  const prevStep = () => setStep(Math.max(step - 1, 0));
-  const nextStep = () => setStep(Math.min(step + 1, maxStep));
-  const stepLabels = [
-    <div className="border text-2xl md:text-3xl text-blue-600 font-bold inline-block align-middle">
-      <p className="pb-1"> Đăng ký tài khoản</p>
-    </div>,
-    <div
-      onClick={prevStep}
-      className="active:opacity-90 cursor-pointer border flex items-center text-2xl md:text-3xl text-blue-600 font-bold gap-1"
-    >
-      <FaChevronLeft size={30} />
-      <p className="pb-1">Thông tin cá nhân</p>
-    </div>,
-    <div
-      onClick={prevStep}
-      className="active:opacity-90 cursor-pointer border flex items-center text-2xl md:text-3xl text-blue-600 font-bold gap-1"
-    >
-      <FaChevronLeft size={30} />
-      <p className="pb-1">Thông tin đoàn viên</p>
-    </div>,
-  ];
-  const handleRegister = (e) => {
-    e.preventDefault();
-    console.log(form);
-  };
+  useEffect(()=>{
+    console.log(chapters)
+  },[chapters])
+
   return (
-    <form
-      onSubmit={handleRegister}
-      className="min-h-20 w-full rounded-lg w-fit bg-white shadow-[0px_0px_12px_#c9c9c9] px-8 py-10 flex flex-col gap-10"
-    >
-      {stepLabels[step]}
-      <div className="flex flex-col gap-8 border">
-        {step == 0 && (
-          <>
-            <BasicInput
-              label={"Tên người dùng"}
-              name={"username"}
-              value={form.username}
-              onChange={(e) => handleChange(e.target.name, e.target.value)}
-            />
-            <BasicInput
-              label={"Email"}
-              name={"email"}
-              value={form.email}
-              onChange={(e) => handleChange(e.target.name, e.target.value)}
-            />
-            <BasicInput
-              label={"Số điện thoại"}
-              name={"phone"}
-              value={form.phone}
-              onChange={(e) => handleChange(e.target.name, e.target.value)}
-            />
-            <PasswordInput
-              label={"Mật khẩu"}
-              name={"password"}
-              value={form.password}
-              onChange={(e) => handleChange(e.target.name, e.target.value)}
-            />
-            <PasswordInput
-              label={"Nhập lại Mật khẩu"}
-              name={"rePassword"}
-              value={form.rePassword}
-              onChange={(e) => handleChange(e.target.name, e.target.value)}
-            />
-          </>
-        )}
-        {step == 1 && (
-          <>
-            <BasicInput
-              label={"Họ và tên"}
-              name={"fullname"}
-              value={form.fullname}
-              onChange={(e) => handleChange(e.target.name, e.target.value)}
-            />
-            <div className="flex flex-col md:flex-row md:gap-8 gap-6 w-full border">
-              <BasicInput
-                label={"Ngày sinh"}
-                name={"birthdate"}
-                type="date"
-                value={form.birthdate}
-                onChange={(e) => handleChange(e.target.name, e.target.value)}
-              />
-              <ToggleInput
-                label={"Giới tính"}
-                name={"gender"}
-                value={form.gender}
-                onChange={handleChange}
-                options={[
-                  { value: "male", label: "Nam" },
-                  { value: "female", label: "Nữ" },
-                ]}
-              />
-            </div>
-            <div className="relative z-50 flex flex-col gap-8">
-              <AddressInput
-                label={"Địa chỉ liên hệ"}
-                name={"address"}
-                value={form.address}
-                onChange={handleChange}
-              />
-            </div>
-          </>
-        )}
-        {step == 2 && (
-          <>
-            <div className="flex flex-col md:flex-row gap-6">
-              <BasicInput
-                label={"Số thẻ đoàn"}
-                name="cardCode"
-                value={form.cardCode}
-                onChange={(e) => handleChange(e.target.name, e.target.value)}
-              />
-              <BasicInput
-                label={"Ngày vào đoàn"}
-                type="date"
-                name={"joinedDate"}
-                value={form.joinedDate}
-                 onChange={(e) => handleChange(e.target.name, e.target.value)}
-              />
-            </div>
-
-            <SelectInput
-              label={"Sinh hoạt tại chi đoàn"}
-              name={"chapter"}
-              value={form.chapter}
-              onChange={handleChange}
-              options={[
-                {
-                  value: 1,
-                  label:
-                    "Chi đoàn khu phố Đông B, phường Đông Hòa, thành phố Hồ Chí Minh",
-                },
-                {
-                  value: 2,
-                  label:
-                    "Chi đoàn khu phố Đông A, phường Đông Hòa, thành phố Hồ Chí Minh",
-                },
-                {
-                  value: 3,
-                  label:
-                    "Chi đoàn khu phố Tây B, phường Đông Hòa, thành phố Hồ Chí Minh",
-                },
-              ]}
-            />
-          </>
-        )}
+    <div className="grid grid-cols-1 md:grid-cols-6 shadow-[0_0_10px_#c9c9c9] w-full rounded-lg p-8 gap-4">
+      {/* Username */}
+      <div className="relative flex flex-col md:col-span-6 gap-1">
+        <p className={`${INPUT_STYLE.label}`}>Tên đăng nhập</p>
+        <input
+          className={`${INPUT_STYLE.input} px-2`}
+          value={form?.username}
+          onChange={(e) => handleChangeFieldInForm("username", e.target.value)}
+        />
       </div>
-      <div className="flex flex-col gap-4 border">
-        {step < maxStep ? (
-          <>
-            <button
-              type="button"
-              onClick={nextStep}
-              className="border text-lg flex items-center gap-4 justify-center w-full h-12 rounded-lg font-medium text-white bg-blue-600 active:opacity-90"
-            >
-              Tiếp tục
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={handleRegister}
-              className="border text-lg flex items-center gap-4 justify-center w-full h-12 rounded-lg font-medium text-white bg-blue-600 active:opacity-90"
-            >
-              Đăng ký
-            </button>
-          </>
-        )}
 
-        <div className="flex flex-col md:flex-row items-center justify-center gap-1">
-          Bạn đã có tài khoản
-          <Link to={"/"} className="text-blue-600 font-medium active:underline">
-            Đăng nhập ngay
-          </Link>
+      {/* Email */}
+      <div className="relative flex flex-col md:col-span-6 gap-1">
+        <p className={`${INPUT_STYLE.label}`}>Email</p>
+        <input
+          className={`${INPUT_STYLE.input} px-2`}
+          value={form?.email}
+          onChange={(e) => handleChangeFieldInForm("email", e.target.value)}
+        />
+      </div>
+
+      {/* Phone */}
+      <div className="relative flex flex-col md:col-span-6 gap-1">
+        <p className={`${INPUT_STYLE.label}`}>Số điện thoại</p>
+        <input
+          className={`${INPUT_STYLE.input} px-2`}
+          value={form?.phone}
+          onChange={(e) => handleChangeFieldInForm("phone", e.target.value)}
+        />
+      </div>
+
+      {/* Password */}
+      <div className="relative flex flex-col gap-1 w-full md:col-span-6">
+        <p className={`${INPUT_STYLE.label}`}>Mật khẩu</p>
+        <input
+          className={`${INPUT_STYLE.input} px-2 pr-14`}
+          type={showPassword ? "text" : "password"}
+          value={form?.password}
+          onChange={(e) => handleChangeFieldInForm("password", e.target.value)}
+        />
+        <div className="h-10 absolute bottom-0 right-2 w-10 flex items-center justify-center text-blue-900">
+          {showPassword ? (
+            <IoEyeOffOutline size={26} onClick={() => setShowPassword(false)} />
+          ) : (
+            <IoEyeOutline size={26} onClick={() => setShowPassword(true)} />
+          )}
         </div>
       </div>
-    </form>
+
+      {/* Fullname */}
+      <div className="relative flex flex-col md:col-span-6 gap-1">
+        <p className={`${INPUT_STYLE.label}`}>Họ và tên</p>
+        <input
+          className={`${INPUT_STYLE.input} px-2`}
+          value={form?.fullname}
+          onChange={(e) => handleChangeFieldInForm("fullname", e.target.value)}
+        />
+      </div>
+
+      {/* Gender */}
+      <div className="relative flex flex-col md:col-span-3 gap-1 ">
+        <p className={`${INPUT_STYLE.label}`}>Giới tính</p>
+        <div
+          className={`${INPUT_STYLE.input} grid grid-cols-2 w-full bg-gray-200 border-none`}
+        >
+          {GENDER.map((item) => (
+            <button
+              key={item.value}
+              className={`${
+                form?.gender == item.value &&
+                "bg-blue-500 text-white font-semibold rounded-sm"
+              }`}
+              onClick={() => handleChangeFieldInForm("gender", item.value)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Birthdate */}
+      <div className="relative flex flex-col md:col-span-3 gap-1">
+        <p className={`${INPUT_STYLE.label}`}>Ngày sinh</p>
+        <input
+          type="date"
+          className={`${INPUT_STYLE.input} px-2`}
+          value={form?.birthdate}
+          onChange={(e) => handleChangeFieldInForm("birthdate", e.target.value)}
+        />
+      </div>
+
+      {/* Address */}
+      <div className="relative flex flex-col md:col-span-6 gap-1">
+        <p className={`${INPUT_STYLE.label}`}>Địa chỉ</p>
+        <input
+          className={`${INPUT_STYLE.input} px-2`}
+          value={form?.address}
+          onChange={(e) => handleChangeFieldInForm("address", e.target.value)}
+        />
+      </div>
+
+      {/* Card code */}
+      <div className="relative flex flex-col md:col-span-3 gap-1">
+        <p className={`${INPUT_STYLE.label}`}>Mã thẻ</p>
+        <input
+          className={`${INPUT_STYLE.input} px-2`}
+          value={form?.cardCode}
+          onChange={(e) => handleChangeFieldInForm("cardCode", e.target.value)}
+        />
+      </div>
+
+      {/* Joined date */}
+      <div className="relative flex flex-col md:col-span-3 gap-1">
+        <p className={`${INPUT_STYLE.label}`}>Ngày tham gia</p>
+        <input
+          type="date"
+          className={`${INPUT_STYLE.input} px-2`}
+          value={form?.joinedDate}
+          onChange={(e) =>
+            handleChangeFieldInForm("joinedDate", e.target.value)
+          }
+        />
+      </div>
+
+      {/* Chapter code */}
+      <div className="relative flex flex-col md:col-span-6 gap-1">
+        <p className={`${INPUT_STYLE.label}`}>Chi đoàn</p>
+        
+        <select
+          className={`${INPUT_STYLE.input} px-2`}
+          value={form?.chapterCode}
+          onChange={(e) =>
+            handleChangeFieldInForm("chapterCode", e.target.value)
+          }
+        >
+          <option>Chọn chi đoàn </option>
+        {chapters?.map(item=>(<option key={item.chapterCode} value={item.chapterCode}>{item.label}</option>))}
+        </select>
+      </div>
+
+      <button
+        className={`${BUTTON} h-12 md:col-span-6 bg-blue-600 active:bg-blue-500 text-white`}
+        onClick={handleRegister}
+      >
+        Đăng ký
+      </button>
+
+      <div className="md:col-span-6 flex flex-col items-center justify-center gap-1">
+        Bạn đã có tài khoản?
+        <NavLink
+          to={"../"}
+          className={`text-blue-900 active:text-blue-700 active:underline font-semibold`}
+        >
+          Đăng nhập
+        </NavLink>
+      </div>
+    </div>
   );
 }
 

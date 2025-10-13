@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import AccountTable from "../components/AccountTable";
+import AccountService from "../services/AccountService";
+import { useNavigate } from "react-router-dom";
 
 // ================= Filter Components =================
 function SearchInput({ value, onChange }) {
@@ -52,8 +54,8 @@ function RoleFilter({ selected, onChange }) {
 
 function StatusFilter({ selected, onChange }) {
   const statuses = [
-    { value: "actived", label: "Đã kích hoạt" },
-    { value: "locked", label: "Bị khóa" },
+    { value: "active", label: "Hoạt dộng" },
+    { value: "locked", label: "Khóa" },
     { value: "pending", label: "Chờ duyệt" },
   ];
 
@@ -127,17 +129,21 @@ function AccountListView() {
   const [searchText, setSearchText] = useState("");
   const [roles, setRoles] = useState([]);
   const [statuses, setStatuses] = useState([]);
+  const navigate = useNavigate()
+
+  const [data, setData] = useState([]);
 
   // Handler
-  const handleSearchClick = () => {
+  const handleSearchClick = async () => {
     console.log("🔍 Search data:", {
       searchText,
       roles,
       statuses,
     });
+    await fetchUsers(searchText, roles, statuses);
   };
 
-  const handleRefreshClick = () => {
+  const handleRefreshClick = async () => {
     console.log("🔄 Làm mới dữ liệu!");
     // reset filter luôn cho tiện
     setSearchText("");
@@ -148,19 +154,30 @@ function AccountListView() {
   const handleAddAccountClick = () => {
     console.log("➕ Thêm tài khoản mới!");
     // ví dụ: mở modal / chuyển trang
+
+    navigate("create")
+    
   };
+
+  const fetchUsers = async (search, role, status) => {
+    const data = await AccountService.getAccounts(search, role, status);
+    setData(data);
+  };
+
+  useEffect(() => {
+    fetchUsers(searchText, roles, statuses);
+  }, [searchText, roles, statuses]);
 
   return (
     <div className="h-full w-full relative z-10">
       <div className="h-fit w-full p-6 md:p-10 flex flex-col gap-6 md:gap-10">
-        
         {/* Bộ lọc */}
         <div className="bg-white rounded-lg p-6 flex flex-col gap-6 relative">
           <SearchInput value={searchText} onChange={setSearchText} />
           <div className="flex flex-col gap-6 md:flex-row">
             <RoleFilter selected={roles} onChange={setRoles} />
             <StatusFilter selected={statuses} onChange={setStatuses} />
-            <SearchButton onClick={handleSearchClick} />
+            {/* <SearchButton onClick={handleSearchClick} /> */}
           </div>
         </div>
 
@@ -172,7 +189,7 @@ function AccountListView() {
               onAdd={handleAddAccountClick}
             />
             <div className="h-fit w-full overflow-auto">
-              <AccountTable />
+              <AccountTable data={data} />
             </div>
           </div>
         </div>

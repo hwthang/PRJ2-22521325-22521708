@@ -30,3 +30,14 @@ export function isValidDate(dateStr) {
   const date = parseDate(dateStr);
   return date instanceof Date && !isNaN(date);
 }
+
+export function toDateInputValue(isoString) {
+  const date = new Date(isoString);
+  
+  // Lấy năm, tháng, ngày
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Tháng 0-11
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
