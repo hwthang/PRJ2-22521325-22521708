@@ -45,9 +45,9 @@ function AccountDetail({ id }) {
   };
 
   const fetchUser = async () => {
-    const data = await AccountService.getAccount(id);
-    setData(data);
-    setUser(data);
+    const result = await AccountService.fetchAccount(id);
+    setData(result.data);
+    setUser(result.data);
   };
 
   useEffect(() => {
@@ -123,7 +123,7 @@ function AccountDetail({ id }) {
               <p className={`${INPUT_STYLE.label}`}>Họ và tên</p>
               <input
                 className={`${INPUT_STYLE.input} px-2`}
-                value={user?.fullname}
+                value={user?.profile?.fullname}
                 onChange={(e) => handleChange("fullname", e.target.value)}
               />
             </div>
@@ -132,7 +132,7 @@ function AccountDetail({ id }) {
               <input
                 className={`${INPUT_STYLE.input} px-2`}
                 type="date"
-                value={toDateInputValue(user?.birthdate)}
+                value={toDateInputValue(user?.profile?.birthdate)}
                 onChange={(e) => handleChange("birthdate", e.target.value)}
               />
             </div>
@@ -145,7 +145,7 @@ function AccountDetail({ id }) {
                   <button
                     key={item.value}
                     className={`${
-                      user?.gender == item.value &&
+                      user?.profile?.gender == item.value &&
                       "bg-blue-500 text-white font-semibold rounded-sm"
                     }`}
                     onClick={() => handleChange("gender", item.value)}
@@ -159,7 +159,7 @@ function AccountDetail({ id }) {
               <p className={`${INPUT_STYLE.label}`}>Địa chỉ </p>
               <textarea
                 className={`${INPUT_STYLE.input} resize-none p-2 h-16`}
-                value={user?.address}
+                value={user?.profile?.address}
                 onChange={(e) => handleChange("address", e.target.value)}
               ></textarea>
             </div>
@@ -167,7 +167,7 @@ function AccountDetail({ id }) {
               <p className={`${INPUT_STYLE.label}`}>Số thẻ đoàn</p>
               <input
                 className={`${INPUT_STYLE.input} px-2`}
-                value={user?.cardCode}
+                value={user?.profile?.cardCode}
                 onChange={(e) => handleChange("cardCode", e.target.value)}
               />
             </div>
@@ -176,7 +176,7 @@ function AccountDetail({ id }) {
               <input
                 className={`${INPUT_STYLE.input} px-2`}
                 type="date"
-                value={toDateInputValue(user?.joinedDate)}
+                value={toDateInputValue(user?.profile?.joinedDate)}
                 onChange={(e) => handleChange("joinedDate", e.target.value)}
               />
             </div>
@@ -184,7 +184,7 @@ function AccountDetail({ id }) {
               <p className={`${INPUT_STYLE.label}`}>Chi đoàn sinh hoạt</p>
               <input
                 className={`${INPUT_STYLE.input} px-2 bg-blue-100`}
-                value={user?.chapter?.name}
+                value={user?.profile?.chapter?.name}
                 disabled
               />
             </div>
@@ -197,7 +197,7 @@ function AccountDetail({ id }) {
                   <button
                     key={item.value}
                     className={`${
-                      user?.position == item.value &&
+                      user?.profile?.position == item.value &&
                       "bg-blue-500 text-white font-semibold rounded-sm"
                     } min-h-10 h-10`}
                     onClick={() => handleChange("position", item.value)}

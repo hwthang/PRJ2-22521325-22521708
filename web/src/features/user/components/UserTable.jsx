@@ -15,37 +15,8 @@ const META_DATA = [
   },
 ];
 
-// Array 1: danh sách ngắn gọn
-const ACCOUNT_LIST = [
-  {
-    key: "user1",
-    avatar: "https://i.pravatar.cc/150?img=1",
-    fullName: "Nguyễn Văn A",
-    username: "nguyenvana",
-    role: "admin", // Quản trị viên
-    status: "active", // Đã kích hoạt
-  },
-  {
-    key: "user2",
-    avatar: "https://i.pravatar.cc/150?img=2",
-    fullName: "Trần Thị B",
-    username: "tranthib",
-    role: "manager", // Quản lý
-    status: "locked", // Bị khóa
-  },
-  {
-    key: "user3",
-    avatar: "https://i.pravatar.cc/150?img=3",
-    fullName: "Lê Văn C",
-    username: "levanc",
-    role: "member", // Đoàn viên
-    status: "pending", // Chờ duyệt
-  },
-];
-
-function AccountTable({ data }) {
+function UserTable({ data }) {
   const navigate = useNavigate();
-
 
   return (
     <div className="w-full flex flex-col overflow-auto">
@@ -97,4 +68,4 @@ function AccountTable({ data }) {
   );
 }
 
-export default AccountTable;
+export default UserTable;

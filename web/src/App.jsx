@@ -13,11 +13,14 @@ import SurveyView from "./features/survey/views/SurveyView";
 import StatisticView from "./features/statistic/views/StatisticView";
 import ProfileView from "./features/profile/views/ProfileView";
 import NotificationView from "./features/notification/views/NotificationView";
-import AccountListView from "./features/account/views/AccountListView";
-import AccountDetailView from "./features/account/views/AccountDetailView";
-import CreateAcountView from "./features/account/views/CreateAccountView";
+// import AccountListView from "./features/account/views/AccountListView";
+// import AccountDetailView from "./features/account/views/AccountDetailView";
+// import CreateAcountView from "./features/account/views/CreateAccountView";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import UserListView from "./features/user/views/UserListView";
+import UserDetailView from "./features/user/views/UserDetailView";
+import CreateUserView from "./features/user/views/CreateUserView";
 
 function App() {
   return (
@@ -32,9 +35,9 @@ function App() {
         <Route path="/cds" element={<MainLayout />}>
           <Route path="dashboard" element={<DashboardView />} />
 
-          <Route path="accounts" element={<AccountListView />} />
-          <Route path="accounts/:key_account" element={<AccountDetailView/>}/>
-           <Route path="accounts/create" element={<CreateAcountView/>}/>
+          <Route path="users" element={<UserListView />} />
+          <Route path="users/:key_account" element={<UserDetailView/>}/>
+           <Route path="users/create" element={<CreateUserView/>}/>
 
 
           <Route path="chapters" element={<ChapterView />} />

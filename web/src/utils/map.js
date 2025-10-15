@@ -1,27 +1,71 @@
 export const ROLE = [
-  { value: "admin", label: "Quản trị", style: "bg-violet-100 text-violet-800" },
-  { value: "manager", label: "Quản lý", style: "bg-cyan-100 tex-cyan-800" },
-  { value: "member", label: "Đoàn viên", style: "bg-blue-100 text-blue-800" },
+  {
+    value: "admin",
+    label: "Quản trị",
+    style: "bg-purple-200 text-purple-800",
+  },
+  {
+    value: "manager",
+    label: "Quản lý",
+    style: "bg-teal-200 text-teal-800",
+  },
+  {
+    value: "member",
+    label: "Đoàn viên",
+    style: "bg-cyan-200 text-cyan-800",
+  },
 ];
 
 export const STATUS = [
-  { value: "active", label: "Hoạt động", style: "bg-green-100 text-green-800" },
-  { value: "locked", label: "Khóa", style: "bg-red-100 text-red-800" },
+  {
+    value: "active",
+    label: "Hoạt động",
+    style: "bg-green-200 text-green-800",
+  },
+  {
+    value: "locked",
+    label: "Khóa",
+    style: "bg-red-200 text-red-800",
+  },
   {
     value: "pending",
     label: "Chờ duyệt",
-    style: "bg-yellow-100 text-yellow-800",
+    style: "bg-yellow-200 text-yellow-800",
   },
 ];
 
 export const GENDER = [
-  { value: "male", label: "Nam" },
-  { value: "female", label: "Nữ" },
+  {
+    value: "male",
+    label: "Nam",
+    style: "bg-blue-200 text-blue-800",
+  },
+  {
+    value: "female",
+    label: "Nữ",
+    style: "bg-pink-200 text-pink-800",
+  },
 ];
 
 export const POSITION = [
-  { value: "bi_thu", label: "Bí thư" },
-  { value: "pho_bi_thu", label: "Phó Bí thư" },
-  { value: "uy_vien", label: "Ủy viên" },
-  { value: "doan_vien", label: "Đoàn viên" },
+  {
+    value: "bt",
+    label: "Bí thư",
+    style: "bg-amber-200 text-amber-800",
+  },
+  {
+    value: "pbt",
+    label: "Phó Bí thư",
+    style: "bg-orange-200 text-orange-800",
+  },
+  {
+    value: "uv",
+    label: "Ủy viên",
+    style: "bg-indigo-200 text-indigo-800",
+  },
+  {
+    value: "dv",
+    label: "Đoàn viên",
+    style: "bg-cyan-200 text-cyan-800",
+  },
 ];

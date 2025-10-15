@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import AccountTable from "../components/AccountTable";
-import AccountService from "../services/AccountService";
+import UserTable from "../components/UserTable";
+import UserService from "../services/UserService";
 import { useNavigate } from "react-router-dom";
 
 // ================= Filter Components =================
@@ -87,24 +87,11 @@ function StatusFilter({ selected, onChange }) {
   );
 }
 
-function SearchButton({ onClick }) {
-  return (
-    <div className="flex gap-4 justify-center relative">
-      <button
-        onClick={onClick}
-        className="w-full px-6 py-2 rounded-lg bg-blue-900 text-white text-nowrap active:bg-blue-800"
-      >
-        Tìm kiếm
-      </button>
-    </div>
-  );
-}
-
 // ================= Header Component =================
-function AccountHeader({ onRefresh, onAdd }) {
+function UserHeader({ onRefresh, onAdd }) {
   return (
     <div className="flex flex-col md:flex-row gap-6 justify-between items-center">
-      <p className="font-medium text-2xl text-nowrap">Danh sách tài khoản</p>
+      <p className="font-medium text-2xl text-nowrap">Danh sách người dùng</p>
       <div className="flex w-full justify-between md:justify-end gap-6 items-center">
         <button
           onClick={onRefresh}
@@ -116,7 +103,7 @@ function AccountHeader({ onRefresh, onAdd }) {
           onClick={onAdd}
           className="px-6 py-2 bg-blue-900 active:bg-blue-800 text-white rounded-lg"
         >
-          Thêm tài khoản
+          Thêm người dùng
         </button>
       </div>
     </div>
@@ -124,59 +111,39 @@ function AccountHeader({ onRefresh, onAdd }) {
 }
 
 // ================= Main Component =================
-function AccountListView() {
-  // State
+function UserListView() {
   const [searchText, setSearchText] = useState("");
   const [roles, setRoles] = useState([]);
   const [statuses, setStatuses] = useState([]);
+  const [data, setData] = useState([]);
   const navigate = useNavigate();
 
-  const [data, setData] = useState([]);
-
-  // Handler
-  const handleSearchClick = async () => {
-    console.log("🔍 Search data:", {
-      searchText,
-      roles,
-      statuses,
-    });
-    await fetchUsers(searchText, roles, statuses);
-  };
-
-  const handleRefreshClick = async () => {
-    console.log("🔄 Làm mới dữ liệu!");
-    // reset filter luôn cho tiện
-    setSearchText("");
-    setRoles([]);
-    setStatuses([]);
-  };
-
-  const handleAddAccountClick = () => {
-    console.log("➕ Thêm tài khoản mới!");
-    // ví dụ: mở modal / chuyển trang
-
-    navigate("create");
-  };
-
   const fetchUsers = async (search, role, status) => {
-    const result = await AccountService.fetchAccounts();
-    console.log(result);
+    const result = await UserService.fetchUsers();
     const users = result.data.filter((item) => {
       const fullname = item?.fullname?.toLowerCase() || "";
       const username = item?.username?.toLowerCase() || "";
-      const searchText = search.toLowerCase();
+      const searchTextLower = search.toLowerCase();
       const matchesSearch =
-        fullname.includes(searchText) || username.includes(searchText);
+        fullname.includes(searchTextLower) || username.includes(searchTextLower);
 
-      const matchesStatus =
-        status.length > 0 ? status.includes(item.status) : true;
+      const matchesStatus = status.length > 0 ? status.includes(item.status) : true;
       const matchesRole = role.length > 0 ? role.includes(item.role) : true;
 
       return matchesSearch && matchesStatus && matchesRole;
     });
-
-    console.log(users);
     setData(users);
+  };
+
+  const handleRefreshClick = async () => {
+    setSearchText("");
+    setRoles([]);
+    setStatuses([]);
+    await fetchUsers("", [], []);
+  };
+
+  const handleAddUserClick = () => {
+    navigate("create");
   };
 
   useEffect(() => {
@@ -192,19 +159,15 @@ function AccountListView() {
           <div className="flex flex-col gap-6 md:flex-row">
             <RoleFilter selected={roles} onChange={setRoles} />
             <StatusFilter selected={statuses} onChange={setStatuses} />
-            {/* <SearchButton onClick={handleSearchClick} /> */}
           </div>
         </div>
 
-        {/* Bảng tài khoản */}
+        {/* Bảng người dùng */}
         <div className="flex flex-col gap-2">
           <div className="bg-white p-6 rounded-lg h-full w-full overflow-auto flex flex-col gap-6">
-            <AccountHeader
-              onRefresh={handleRefreshClick}
-              onAdd={handleAddAccountClick}
-            />
+            <UserHeader onRefresh={handleRefreshClick} onAdd={handleAddUserClick} />
             <div className="h-fit w-full overflow-auto">
-              <AccountTable data={data} />
+              <UserTable data={data} />
             </div>
           </div>
         </div>
@@ -213,4 +176,4 @@ function AccountListView() {
   );
 }
 
-export default AccountListView;
+export default UserListView;

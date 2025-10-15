@@ -1,18 +1,6 @@
-import { toast } from "react-toastify";
 import apiClient from "../../../utils/api";
 
 class AuthService {
-  API_ROUTE = `/api/auth`;
-
-  getChapters = async () => {
-    try {
-      const response = await apiClient.get(`${this.API_ROUTE}/chapters`);
-      return response.data;
-    } catch (error) {
-      return;
-    }
-  };
-
   getFieldNameOfAccount = (account) => {
     if (!account) return "username"; // tránh lỗi khi account null/undefined
 
@@ -21,32 +9,36 @@ class AuthService {
     return "username";
   };
 
-  login = async (data) => {
+  login = async (key, password) => {
     try {
-      const response = await apiClient.post(`${this.API_ROUTE}/login`, {
-        [this.getFieldNameOfAccount(data?.account)]: data?.account,
-        password: data?.password,
+      const response = await apiClient.post(`/api/auth/login`, {
+        key,
+        password,
       });
 
-      if (response?.data?.token) {
-        localStorage.setItem("token", response.data);
-        toast.success("Đăng nhập thành công");
-        return response?.data?.role;
-      }
+      const { success, data, message } = response;
 
-      toast.error(response.message)
+      if (success) localStorage.setItem("token", data?.token);
+
+      return { success, data, message };
     } catch (error) {
-      return;
+      console.log(error);
+      return null;
     }
   };
 
-  register = async (data) => {
+  register = async (account, profile) => {
     try {
-      const response = await apiClient.post(`${this.API_ROUTE}/register`, data);
-      console.log(response)
-      return response?.data?.role;
+      const response = await apiClient.post(`/api/auth/register`, {
+        account,
+        profile,
+      });
+      const { success, data, message } = response;
+
+      return { success, data, message };
     } catch (error) {
-      return;
+      console.log(error);
+      return null;
     }
   };
 }

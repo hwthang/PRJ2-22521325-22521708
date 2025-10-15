@@ -2,7 +2,10 @@ import React from "react";
 import RegisterForm from "../components/RegisterForm";
 
 function RegisterView() {
-  return <RegisterForm />;
+  return (
+   
+        <RegisterForm />
+  );
 }
 
 export default RegisterView;
