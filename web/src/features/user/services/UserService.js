@@ -77,6 +77,25 @@ class UserService {
       return null;
     }
   };
+
+  // ✅ Cập nhật avatar người dùng
+updateAvatar = async (id, file) => {
+  try {
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    const response = await apiClient.patch(`/api/users/${id}/update-avatar`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    const { success, data, message } = response;
+    return { success, data, message };
+  } catch (error) {
+    console.error("Error updating avatar:", error);
+    return { success: false, message: "Không thể cập nhật avatar" };
+  }
+};
+
 }
 
 export default new UserService();

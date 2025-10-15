@@ -5,6 +5,7 @@ import { GENDER, POSITION, STATUS } from "../../../utils/map";
 import useForm from "../../../core/hooks/useForm";
 import { toDateInputValue } from "../../../utils/date";
 import defAvatar from "../../../core/assets/images/avatar.png";
+import Avatar from "../../../core/components/Avatar";
 
 const ROLE = {
   admin: {
@@ -72,6 +73,7 @@ function UserDetail({ id }) {
   const fetchUser = async () => {
     try {
       const result = await UserService.fetchUser(id);
+      console.log(result.data)
       if (!result.success) {
         toast.error(result.message);
         return;
@@ -88,6 +90,7 @@ function UserDetail({ id }) {
 
       if (result.data.profile) {
         const prf = {
+          avatar: result.data.profile?.avatar?.path,
           fullname: result.data.profile?.fullname || "",
           birthdate: result.data.profile?.birthdate || "",
           gender: result.data.profile?.gender || "",
@@ -118,20 +121,28 @@ function UserDetail({ id }) {
     fetchUser();
   }, [id]);
 
+   useEffect(() => {
+    fetchUser();
+  }, []);
   return (
     <div className="relative">
       <div className="grid grid-cols-6 gap-x-6 gap-4 auto-rows-10 p-4">
         {/* --- Avatar + Role + Status --- */}
         <div className="row-span-2 flex flex-col items-center justify-center gap-3 col-span-6 lg:col-span-1 md:row-span-3">
-          <img
+          {/* <img
             src={defAvatar}
-            className="max-w-40 w-full object-cover aspect-square"
+            className="max-w-40 w-full object-cover aspect-square rounded-lg"
             alt="avatar"
+          /> */}
+          <Avatar
+            userId={id}
+            src={profile?.avatar}
+            onUpdated={(newData) => console.log("Avatar updated:", newData)}
           />
         </div>
 
         <div
-          className={`text-sm flex items-center justify-center p-2 font-semibold col-span-3 md:col-span-1 md:row-start-4 ${
+          className={`text-sm flex items-center justify-center p-2 font-semibold col-span-3 md:col-span-1 md:row-start-4 rounded-lg ${
             ROLE[account?.role]?.color
           }`}
         >
@@ -139,7 +150,7 @@ function UserDetail({ id }) {
         </div>
 
         <div
-          className={`text-sm flex items-center justify-center p-2 font-semibold col-span-3  md:col-span-1 md:row-start-5 ${
+          className={`text-sm flex items-center justify-center p-2 font-semibold col-span-3 md:col-span-1 md:row-start-5 rounded-lg ${
             STATUS.find((s) => s.value === account?.status)?.style
           }`}
         >
@@ -150,7 +161,7 @@ function UserDetail({ id }) {
         <div className="relative flex flex-col gap-1 col-span-6 md:col-span-2">
           <p className="font-semibold">Tên người dùng</p>
           <input
-            className="border border-gray-300 py-2 px-2 border-2 focus:border-blue-400 outline-none"
+            className="border border-gray-300 py-2 px-2 border-2 focus:border-blue-400 outline-none rounded-lg"
             value={account?.username || ""}
             onChange={(e) => handleChangeAccount("username", e.target.value)}
           />
@@ -159,7 +170,7 @@ function UserDetail({ id }) {
         <div className="relative flex flex-col gap-1 col-span-6 md:col-span-2">
           <p className="font-semibold">Email</p>
           <input
-            className="border border-gray-300 py-2 px-2 border-2 focus:border-blue-400 outline-none"
+            className="border border-gray-300 py-2 px-2 border-2 focus:border-blue-400 outline-none rounded-lg"
             value={account?.email || ""}
             onChange={(e) => handleChangeAccount("email", e.target.value)}
           />
@@ -168,18 +179,17 @@ function UserDetail({ id }) {
         <div className="relative flex flex-col gap-1 col-span-6 md:col-span-1">
           <p className="font-semibold">Số điện thoại</p>
           <input
-            className="border border-gray-300 py-2 px-2 border-2 focus:border-blue-400 outline-none"
+            className="border border-gray-300 py-2 px-2 border-2 focus:border-blue-400 outline-none rounded-lg"
             value={account?.phone || ""}
             onChange={(e) => handleChangeAccount("phone", e.target.value)}
           />
         </div>
 
-        {/* --- Profile Info (if exists) --- */}
-
+        {/* --- Profile Info --- */}
         <div className="relative flex flex-col gap-1 col-span-6 md:col-span-3">
           <p className="font-semibold">Họ và tên</p>
           <input
-            className="border border-gray-300 py-2 px-2 border-2 focus:border-blue-400 outline-none"
+            className="border border-gray-300 py-2 px-2 border-2 focus:border-blue-400 outline-none rounded-lg"
             value={profile?.fullname || ""}
             onChange={(e) => handleChangeProfile("fullname", e.target.value)}
           />
@@ -187,12 +197,12 @@ function UserDetail({ id }) {
 
         <div className="relative flex flex-col gap-1 col-span-6 md:col-span-1">
           <p className="font-semibold">Giới tính</p>
-          <div className="grid grid-cols-2 bg-gray-200 h-11 overflow-hidden">
+          <div className="grid grid-cols-2 bg-gray-200 h-11 overflow-hidden rounded-lg">
             {GENDER.map((g) => (
               <button
                 key={g.value}
                 type="button"
-                className={`py-2 ${
+                className={`py-2 rounded-lg ${
                   profile?.gender === g.value
                     ? `font-semibold ${g.style}`
                     : "text-gray-800"
@@ -209,7 +219,7 @@ function UserDetail({ id }) {
           <p className="font-semibold">Ngày sinh</p>
           <input
             type="date"
-            className="border border-gray-300 py-2 px-2 border-2 focus:border-blue-400 outline-none"
+            className="border border-gray-300 py-2 px-2 border-2 focus:border-blue-400 outline-none rounded-lg"
             value={toDateInputValue(profile?.birthdate)}
             onChange={(e) => handleChangeProfile("birthdate", e.target.value)}
             onKeyDown={(e) => e.preventDefault()}
@@ -219,18 +229,18 @@ function UserDetail({ id }) {
         <div className="relative flex flex-col gap-1 col-span-6 row-span-3 md:col-span-5">
           <p className="font-semibold">Địa chỉ</p>
           <textarea
-            className="border border-gray-300 py-2 px-2 h-full border-2 focus:border-blue-400 outline-none resize-none"
+            className="border border-gray-300 py-2 px-2 h-full border-2 focus:border-blue-400 outline-none resize-none rounded-lg"
             value={profile?.address || ""}
             onChange={(e) => handleChangeProfile("address", e.target.value)}
           ></textarea>
         </div>
-        {account?.role == "member" && (
+
+        {account?.role === "member" && (
           <>
-            {" "}
             <div className="relative flex flex-col gap-1 col-span-6 md:col-span-1">
               <p className="font-semibold">Số thẻ đoàn</p>
               <input
-                className="border border-gray-300 py-2 px-2 border-2 focus:border-blue-400 outline-none"
+                className="border border-gray-300 py-2 px-2 border-2 focus:border-blue-400 outline-none rounded-lg"
                 value={profile?.cardCode || ""}
                 onChange={(e) =>
                   handleChangeProfile("cardCode", e.target.value)
@@ -241,7 +251,7 @@ function UserDetail({ id }) {
               <p className="font-semibold">Ngày vào đoàn</p>
               <input
                 type="date"
-                className="border border-gray-300 py-2 px-2 border-2 focus:border-blue-400 outline-none"
+                className="border border-gray-300 py-2 px-2 border-2 focus:border-blue-400 outline-none rounded-lg"
                 value={toDateInputValue(profile?.joinedDate)}
                 onChange={(e) =>
                   handleChangeProfile("joinedDate", e.target.value)
@@ -251,18 +261,18 @@ function UserDetail({ id }) {
             </div>
             <div className="relative flex flex-col gap-1 col-span-6 md:col-span-4">
               <p className="font-semibold">Chi đoàn sinh hoạt</p>
-              <div className="min-h-11 flex items-center px-3 py-1 bg-blue-100 text-blue-900">
+              <div className="min-h-11 flex items-center px-3 py-1 bg-blue-100 text-blue-900 rounded-lg">
                 {chapter}
               </div>
             </div>
             <div className="relative flex flex-col gap-1 col-span-6">
               <p className="font-semibold">Chức vụ</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 bg-gray-100 overflow-hidden">
+              <div className="grid grid-cols-2 md:grid-cols-4 bg-gray-100 overflow-hidden rounded-lg">
                 {POSITION.map((pos) => (
                   <button
                     key={pos.value}
                     type="button"
-                    className={`py-2 ${
+                    className={`py-2 rounded-lg ${
                       profile?.position === pos.value
                         ? `${pos.style} font-semibold`
                         : "text-gray-700"
@@ -278,9 +288,8 @@ function UserDetail({ id }) {
         )}
 
         {/* --- Buttons --- */}
-
         <button
-          className={`mt-2 relative flex flex-col gap-1 col-span-3 px-4 py-2 text-white font-semibold md:col-span-1 md:col-start-3 ${
+          className={`mt-2 relative flex flex-col gap-1 col-span-3 px-4 py-2 text-white font-semibold md:col-span-1 md:col-start-3 rounded-lg ${
             isEditing
               ? "bg-indigo-600 hover:bg-indigo-500"
               : "bg-gray-400 cursor-not-allowed"
@@ -292,14 +301,14 @@ function UserDetail({ id }) {
 
         {account?.status !== "active" ? (
           <button
-            className="mt-2 relative flex flex-col gap-1 col-span-3 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold md:col-span-1"
+            className="mt-2 relative flex flex-col gap-1 col-span-3 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold md:col-span-1 rounded-lg"
             onClick={handleActive}
           >
             Kích hoạt
           </button>
         ) : (
           <button
-            className=" mt-2 relative flex flex-col gap-1 col-span-3 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-semibold md:col-span-1"
+            className="mt-2 relative flex flex-col gap-1 col-span-3 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-semibold md:col-span-1 rounded-lg"
             onClick={handleLock}
           >
             Khóa
