@@ -3,6 +3,7 @@ import { IoCameraOutline } from "react-icons/io5";
 import { motion, AnimatePresence } from "framer-motion";
 import defAvatar from "../../core/assets/images/avatar.png";
 import UserService from "../../features/user/services/UserService";
+import Loading from "./Loading";
 // đường dẫn tới service của bạn
 
 const Avatar = ({ userId, src, onUpdated }) => {
@@ -31,7 +32,7 @@ const Avatar = ({ userId, src, onUpdated }) => {
     if (res?.success) {
       setPreview(tempFile.url);
       setShowPopup(false);
-      if (onUpdated) onUpdated(res.data);
+      // if (onUpdated) onUpdated(res.data);
     } else {
       alert(res?.message || "Cập nhật avatar thất bại");
     }
@@ -47,11 +48,12 @@ const Avatar = ({ userId, src, onUpdated }) => {
   return (
     <div className="relative flex flex-col items-center justify-center col-span-6 lg:col-span-1 gap-3">
       {/* Avatar hiển thị */}
-      <div className="relative w-40 h-40">
+      <div className="relative max-w-40 max-h-40 ">
+        <div className="absolute bg-blue-600 text-white w-20 rounded-lg flex justify-center items-center p-1 -top-2 left-10">900</div>
         <img
           src={preview || defAvatar}
           alt="avatar"
-          className="w-full h-full object-cover rounded-full border border-gray-300 shadow-sm"
+          className="w-full h-full border-blue-600 border-2 object-cover rounded-full border shadow-sm"
         />
 
         {/* Nút edit */}
@@ -111,7 +113,7 @@ const Avatar = ({ userId, src, onUpdated }) => {
                   onClick={handleConfirm}
                   disabled={loading}
                 >
-                  {loading ? "Đang lưu..." : "Xác nhận"}
+                  {loading ? <Loading/> : "Xác nhận"}
                 </button>
               </div>
             </motion.div>

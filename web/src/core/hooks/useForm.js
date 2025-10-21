@@ -9,10 +9,13 @@ const useForm = () => {
 
   const getFieldInForm = (name) => form[name];
 
+  const resetForm = () => setForm({})
+
   return {
     form,
     handleChangeFieldInForm,
     getFieldInForm,
+    resetForm
   };
 };
 
