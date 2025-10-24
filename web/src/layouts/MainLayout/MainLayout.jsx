@@ -15,7 +15,7 @@ function MainLayout() {
         <div className="w-fit">
           <LeftNavigation />
         </div>
-        <div className="h-full w-full bg-gray-200 overflow-auto" >
+        <div className="h-full w-full bg-gray-100 overflow-auto" >
           <Outlet/>
         </div>
        

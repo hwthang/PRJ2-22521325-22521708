@@ -1,53 +1,51 @@
 import apiClient from "../../../utils/api";
-import qs from "qs";
 
 class AccountService {
-  fetchAccounts = async () => {
+  getAccounts = async (params) => {
     try {
-      const response = await apiClient.get(`/api/users`);
-      const { success, data, message } = response;
-
-      return { success, data, message };
+      const response = await apiClient.get("/api/accounts");
+      const result = response.data;
+      console.log(result);
+      return result;
     } catch (error) {
       console.log(error);
-      return null;
+      return "Lỗi khi lấy danh sách tài khoản";
     }
   };
 
-  fetchAccount = async(id)=>{
-     try {
-      const response = await apiClient.get(`/api/users/${id}`);
-      const { success, data, message } = response;
-
-      return { success, data, message };
+  getAccount = async (id) => {
+    try {
+      const response = await apiClient.get(`/api/accounts/${id}`);
+      const result = response.data;
+      console.log(result);
+      return result;
     } catch (error) {
       console.log(error);
-      return null;
+      return "Lỗi khi lấy thông tin tài khoản";
     }
-  }
+  };
 
-  activeAccount = async(id)=>{
-     try {
-      const response = await apiClient.patch(`/api/users/${id}/active`);
-      const { success, data, message } = response;
-
-      return { success, data, message };
-    } catch (error) {
-      console.log(error);
-      return null;
-    }
+updateAvatar = async (id, avatar) => {
+  try {
+    const formData = new FormData();
+    formData.append("avatar", avatar);
+    const response = await apiClient.patch(
+      `/api/accounts/${id}/update-avatar`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    const result = response;
+    console.log(result);
+    return result;
+  } catch (error) {
+    console.log(error);
+    return "Lỗi khi cập nhật avatar";
   }
-  lockAccount = async(id)=>{
-     try {
-      const response = await apiClient.patch(`/api/users/${id}/lock`);
-      const { success, data, message } = response;
-
-      return { success, data, message };
-    } catch (error) {
-      console.log(error);
-      return null;
-    }
-  }
+};
 }
 
 export default new AccountService();

@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Tạo instance Axios chung
 const apiClient = axios.create({
-  baseURL: "https://be-prj2.onrender.com", // URL backend
+  baseURL: "http://localhost:5000", // URL backend
   timeout: 10000,                     // timeout 10s
   headers: {
     "Content-Type": "application/json",

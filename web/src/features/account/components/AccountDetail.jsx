@@ -1,248 +1,45 @@
-import React, { useEffect, useState } from "react";
-import AccountService from "../services/AccountService.js";
-import { toDateInputValue } from "../../../utils/date.js";
-import defAvatar from "../../../core/assets/images/avatar.png";
-import { GENDER, POSITION, ROLE, STATUS } from "../../../utils/map.js";
-import { BUTTON, INPUT_STYLE } from "../../../utils/styles.js";
+import React, { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
+import MemberForm from "../../member/components/MemberForm";
+import ChapterForm from "../../chapter/components/ChapterForm";
+import AccountService from "../services/AccountService";
 
+function AccountDetail() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [accountData, setAccountData] = React.useState(null);
+  const { id, type } = location.state || {};
 
-
-function AccountDetail({ id }) {
-  const [data, setData] = useState(null);
-  const [user, setUser] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [update, setUpdate] = useState(null);
-
-  const handleChange = (name, value) => {
-    setUser((prev) => ({ ...prev, [name]: value }));
-    setUpdate((prev) => ({ ...prev, [name]: value }));
-    setIsEditing(true);
-  };
-
-  const handleUpdate = async () => {
-    if (isEditing) {
-     
-      setIsEditing(false);
-      await AccountService.updateUser(id, update)
-
-    }
-  };
-  const handleCancel = () => {
-    if (isEditing) {
-      setUpdate(null);
-      setUser(data);
-      setIsEditing(false);
-    }
-  };
-
-  const handleActive = async () => {
-    await AccountService.activeAccount(id);
-    await fetchUser();
-  };
-  const handleLock = async () => {
-    await AccountService.lockAccount(id);
-    await fetchUser();
-  };
-
-  const fetchUser = async () => {
-    const result = await AccountService.fetchAccount(id);
-    setData(result.data);
-    setUser(result.data);
+  const fetchAccount = async (id) => {
+    const account = await AccountService.getAccount(id);
+    console.log("Account data:", account);
+    setAccountData(account);
+    return;
   };
 
   useEffect(() => {
-    fetchUser();
-  }, []);
-  return (
-    <div className="p-4 flex flex-col justify-center items-center gap-8">
-      <div className="relative">
-        <img
-          className="min-h-60 min-w-60 h-60 w-60 rounded-full"
-          src={defAvatar}
-        />
-      </div>
-      <div className="w-full grid grid-cols-1 lg:grid-cols-6 gap-4">
-        <div
-          className={`lg:col-start-3 h-10 flex items-center justify-center rounded-full font-semibold ${
-            ROLE.find((item) => item.value == user?.role)?.style
-          }`}
-        >
-          {ROLE.find((item) => item.value == user?.role)?.label}
-        </div>
-        <div
-          className={`flex items-center h-10 justify-center rounded-full font-semibold ${
-            STATUS.find((item) => item.value == user?.status)?.style
-          }`}
-        >
-          {STATUS.find((item) => item.value == user?.status)?.label}
-        </div>
-        <div className="lg:col-start-6">
-          {["locked", "pending"].includes(user?.status) ? (
-            <button
-              className={`${BUTTON} bg-green-500 text-white active:bg-green-400`}
-              onClick={handleActive}
-            >
-              Kích hoạt
-            </button>
-          ) : (
-            <button
-              className={`${BUTTON} bg-red-500 text-white active:bg-red-400`}
-              onClick={handleLock}
-            >
-              Khóa
-            </button>
-          )}
-        </div>
-        <div className="relative flex flex-col gap-1 lg:col-span-2">
-          <p className={`${INPUT_STYLE.label}`}>Tên người dùng</p>
-          <input
-            className={`${INPUT_STYLE.input} px-2`}
-            value={user?.username}
-            onChange={(e) => handleChange("username", e.target.value)}
-          />
-        </div>
-        <div className="relative flex flex-col gap-1  lg:col-span-2">
-          <p className={`${INPUT_STYLE.label}`}>Email</p>
-          <input
-            className={`${INPUT_STYLE.input} px-2`}
-            value={user?.email}
-            onChange={(e) => handleChange("email", e.target.value)}
-          />
-        </div>
-        <div className="relative flex flex-col gap-1  lg:col-span-2">
-          <p className={`${INPUT_STYLE.label}`}>Số điện thoại</p>
-          <input
-            className={`${INPUT_STYLE.input} px-2`}
-            value={user?.phone}
-            onChange={(e) => handleChange("phone", e.target.value)}
-          />
-        </div>
-        {user?.role == "member" && (
-          <>
-            <div className="relative flex flex-col gap-1  lg:col-span-4">
-              <p className={`${INPUT_STYLE.label}`}>Họ và tên</p>
-              <input
-                className={`${INPUT_STYLE.input} px-2`}
-                value={user?.profile?.fullname}
-                onChange={(e) => handleChange("fullname", e.target.value)}
-              />
-            </div>
-            <div className="relative flex flex-col gap-1 ">
-              <p className={`${INPUT_STYLE.label}`}>Ngày sinh</p>
-              <input
-                className={`${INPUT_STYLE.input} px-2`}
-                type="date"
-                value={toDateInputValue(user?.profile?.birthdate)}
-                onChange={(e) => handleChange("birthdate", e.target.value)}
-              />
-            </div>
-            <div className="relative flex flex-col gap-1">
-              <p className={`${INPUT_STYLE.label}`}>Giới tính</p>
-              <div
-                className={`${INPUT_STYLE.input} grid grid-cols-2 w-full bg-gray-200 border-none`}
-              >
-                {GENDER.map((item) => (
-                  <button
-                    key={item.value}
-                    className={`${
-                      user?.profile?.gender == item.value &&
-                      "bg-blue-500 text-white font-semibold rounded-sm"
-                    }`}
-                    onClick={() => handleChange("gender", item.value)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="relative flex flex-col gap-1 lg:col-span-6">
-              <p className={`${INPUT_STYLE.label}`}>Địa chỉ </p>
-              <textarea
-                className={`${INPUT_STYLE.input} resize-none p-2 h-16`}
-                value={user?.profile?.address}
-                onChange={(e) => handleChange("address", e.target.value)}
-              ></textarea>
-            </div>
-            <div className="relative flex flex-col gap-1">
-              <p className={`${INPUT_STYLE.label}`}>Số thẻ đoàn</p>
-              <input
-                className={`${INPUT_STYLE.input} px-2`}
-                value={user?.profile?.cardCode}
-                onChange={(e) => handleChange("cardCode", e.target.value)}
-              />
-            </div>
-            <div className="relative flex flex-col gap-1">
-              <p className={`${INPUT_STYLE.label}`}>Ngày vào đoàn</p>
-              <input
-                className={`${INPUT_STYLE.input} px-2`}
-                type="date"
-                value={toDateInputValue(user?.profile?.joinedDate)}
-                onChange={(e) => handleChange("joinedDate", e.target.value)}
-              />
-            </div>
-            <div className="relative flex flex-col gap-1 lg:col-span-4">
-              <p className={`${INPUT_STYLE.label}`}>Chi đoàn sinh hoạt</p>
-              <input
-                className={`${INPUT_STYLE.input} px-2 bg-blue-100`}
-                value={user?.profile?.chapter?.name}
-                disabled
-              />
-            </div>
-            <div className="relative flex flex-col gap-1 lg:col-span-6">
-              <p className={`${INPUT_STYLE.label}`}>Chức vụ</p>
-              <div
-                className={`${INPUT_STYLE.input} grid grid-cols-1 lg:grid-cols-4 w-full bg-gray-200 border-none`}
-              >
-                {POSITION.map((item) => (
-                  <button
-                    key={item.value}
-                    className={`${
-                      user?.profile?.position == item.value &&
-                      "bg-blue-500 text-white font-semibold rounded-sm"
-                    } min-h-10 h-10`}
-                    onClick={() => handleChange("position", item.value)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
+    if (id) {
+      fetchAccount(id);
+    }
+  }, [id]);
 
-        <div className="lg:col-start-3 lg:col-span-2 grid grid-cols-2 gap-4 py-4">
-          <button
-            className={`${BUTTON} text-white  ${
-              isEditing ? "bg-blue-500  active:bg-blue-400" : "bg-gray-400"
-            }`}
-            onClick={handleUpdate}
-          >
-            Cập nhật
-          </button>
-          <button
-            className={`${BUTTON} text-white  ${
-              isEditing ? "bg-red-500  active:bg-red-400" : "bg-gray-400"
-            } `}
-            onClick={handleCancel}
-          >
-            Hủy
-          </button>
-        </div>
-        {user?.role == "member" && (
-          <>
-            <div className="relative flex flex-col gap-1 lg:col-span-6 h-20 border">
-              <p className={`text-2xl font-semibold`}>Khen thưởng</p>
-              <div className="">Nội dung khen thưởng</div>
-            </div>
-            <div className="relative flex flex-col gap-1 lg:col-span-6 h-20 border">
-              <p className={`text-2xl font-semibold`}>Kỷ luật</p>
-              <div className="">Nội dung kỷ luật</div>
-            </div>
-          </>
-        )}
-        <div className="relative flex flex-col gap-1 lg:col-span-6 h-20 border">
-          <p className={`text-2xl font-semibold`}>Hoạt động</p>
-          <div className="">Nội dung hoạt động</div>
+  return (
+    <div className="p-6 md:p-10">
+      {/* Container giống AccountTable */}
+      <div className="bg-white rounded-2xl shadow-sm p-6">
+        {/* Back button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 px-3 py-2 mb-6 transition active:bg-gray-100 rounded-lg"
+        >
+          <ChevronLeft size={40} />
+        </button>
+
+        {/* Form placeholder */}
+        <div className="rounded-lg">
+          {type === "member" && <MemberForm data={accountData} />}
+          {type === "chapter" && <ChapterForm data={accountData} />}
         </div>
       </div>
     </div>

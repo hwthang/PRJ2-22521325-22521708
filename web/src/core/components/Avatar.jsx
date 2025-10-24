@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { IoCameraOutline } from "react-icons/io5";
 import { motion, AnimatePresence } from "framer-motion";
 import defAvatar from "../../core/assets/images/avatar.png";
-import UserService from "../../features/user/services/UserService";
-import Loading from "./Loading";
+import { LoaderCircle } from "lucide-react";
+import AccountService from "../../features/account/services/AccountService";
 // đường dẫn tới service của bạn
 
 const Avatar = ({ userId, src, onUpdated }) => {
@@ -27,7 +27,8 @@ const Avatar = ({ userId, src, onUpdated }) => {
     if (!tempFile) return;
     setLoading(true);
 
-    const res = await UserService.updateAvatar(userId, tempFile.file);
+    const res = await AccountService.updateAvatar(userId, tempFile.file);
+    console.log("Update avatar response:", res);
 
     if (res?.success) {
       setPreview(tempFile.url);
@@ -48,8 +49,7 @@ const Avatar = ({ userId, src, onUpdated }) => {
   return (
     <div className="relative flex flex-col items-center justify-center col-span-6 lg:col-span-1 gap-3">
       {/* Avatar hiển thị */}
-      <div className="relative max-w-40 max-h-40 ">
-        <div className="absolute bg-blue-600 text-white w-20 rounded-lg flex justify-center items-center p-1 -top-2 left-10">900</div>
+      <div className="relative max-h-60 max-w-60 h-full w-full aspect-square rounded-full ">
         <img
           src={preview || defAvatar}
           alt="avatar"
@@ -113,7 +113,7 @@ const Avatar = ({ userId, src, onUpdated }) => {
                   onClick={handleConfirm}
                   disabled={loading}
                 >
-                  {loading ? <Loading/> : "Xác nhận"}
+                  {loading ? <LoaderCircle className="animate-spin"/>: "Xác nhận"}
                 </button>
               </div>
             </motion.div>

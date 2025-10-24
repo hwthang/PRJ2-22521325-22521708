@@ -13,14 +13,10 @@ import SurveyView from "./features/survey/views/SurveyView";
 import StatisticView from "./features/statistic/views/StatisticView";
 import ProfileView from "./features/profile/views/ProfileView";
 import NotificationView from "./features/notification/views/NotificationView";
-// import AccountListView from "./features/account/views/AccountListView";
-// import AccountDetailView from "./features/account/views/AccountDetailView";
-// import CreateAcountView from "./features/account/views/CreateAccountView";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import UserListView from "./features/user/views/UserListView";
-import UserDetailView from "./features/user/views/UserDetailView";
-import CreateUserView from "./features/user/views/CreateUserView";
+import AccountView from "./features/account/views/AccountView";
+import AccountDetail from "./features/account/components/AccountDetail";
 
 function App() {
   return (
@@ -35,21 +31,19 @@ function App() {
         <Route path="/cds" element={<MainLayout />}>
           <Route path="dashboard" element={<DashboardView />} />
 
-          <Route path="users" element={<UserListView />} />
-          <Route path="users/:key_account" element={<UserDetailView/>}/>
-           <Route path="users/create" element={<CreateUserView/>}/>
-
+          <Route path="accounts" element={<AccountView />} />
+          <Route path="accounts/:id" element={<AccountDetail/>} />
 
           <Route path="chapters" element={<ChapterView />} />
           <Route path="events" element={<EventView />} />
           <Route path="documents" element={<DocumentView />} />
           <Route path="surveys" element={<SurveyView />} />
           <Route path="statistics" element={<StatisticView />} />
-           <Route path="profile" element={<ProfileView />} />
-            <Route path="notifications" element={<NotificationView />} />
+          <Route path="profile" element={<ProfileView />} />
+          <Route path="notifications" element={<NotificationView />} />
         </Route>
       </Routes>
-       <ToastContainer
+      <ToastContainer
         position="top-right"
         autoClose={1500}
         hideProgressBar={false}

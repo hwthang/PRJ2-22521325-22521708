@@ -44,9 +44,9 @@ function LeftNavigation() {
       />
 
       <NavItem
-        label={"Người dùng"}
+        label={"Tài khoản"}
         icon={<FaUserGroup size={24} />}
-        path={`users`}
+        path={`accounts`}
       />
 
       <NavItem
