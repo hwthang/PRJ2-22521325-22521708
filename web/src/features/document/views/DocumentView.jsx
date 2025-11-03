@@ -44,7 +44,7 @@ function TypeFilter({ selected, onChange }) {
   return (
     <div className="flex-1 flex gap-4 items-center md:justify-around bg-blue-100 p-2 rounded-lg">
       <span className="text-nowrap font-medium w-30 md:w-fit">Loại tài liệu:</span>
-      <ul className="flex gap-4 w-full items-center md:justify-around flex-wrap">
+      <ul className="flex gap-4 w-full items-center md:justify-start flex-wrap">
         {types.map((t) => (
           <li key={t.value} className="flex gap-2 items-center justify-center">
             <input

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import AccountTable from "../components/AccountTable";
 import AccountService from "../services/AccountService";
+import { useNavigate } from "react-router-dom";
 
 /* ================= Search Input ================= */
 function SearchInput({ value, onChange }) {
@@ -112,6 +113,7 @@ function AccountHeader({ onRefresh, onAdd }) {
 
 /* ================= Main Component ================= */
 function AccountView() {
+  const navigate = useNavigate();
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState([]);
   const [typeFilter, setTypeFilter] = useState([]);
@@ -145,6 +147,7 @@ function AccountView() {
 
   const handleAddAccount = () => {
     console.log("Thêm tài khoản mới");
+    
   };
 
   useEffect(() => {

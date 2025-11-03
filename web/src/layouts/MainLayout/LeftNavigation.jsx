@@ -9,12 +9,20 @@ import { BsCalendar2EventFill } from "react-icons/bs";
 import { HiClipboardDocumentList } from "react-icons/hi2";
 import { SiGoogleforms } from "react-icons/si";
 import { BsFillBarChartFill } from "react-icons/bs";
+import permission from "../../utils/permission";
+import { useAccess } from "../../core/context/AccessContext";
+import { FaUserGraduate } from "react-icons/fa6";
+import { IoMdSettings } from "react-icons/io";
 
 function LeftNavigation() {
   const [showNav, setShowNav] = useState(false);
   const dropdownRef = useRef(null);
+  const accessData = useAccess();
+  const { user } = accessData;
+
 
   useEffect(() => {
+    console.log(user)
     const handleClickOutside = (e) => {
       // Nếu click bên ngoài dropdown
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -43,17 +51,27 @@ function LeftNavigation() {
         path={`dashboard`}
       />
 
-      <NavItem
-        label={"Tài khoản"}
-        icon={<FaUserGroup size={24} />}
-        path={`accounts`}
-      />
+      {/* {permission.hasPermission(user.role, "view_accounts") && (
+        <NavItem
+          label={"Tài khoản"}
+          icon={<FaUserGroup size={24} />}
+          path={`accounts`}
+        />
+      )} */}
 
+  
       <NavItem
         label={"Cơ sở đoàn"}
         icon={<RiUserCommunityFill size={30} />}
         path={`chapters`}
       />
+
+      <NavItem
+        label={"Đoàn viên"}
+        icon={<FaUserGraduate size={24} />}
+        path={`members`}
+      />
+      
       <NavItem
         label={"Sự kiện"}
         icon={<BsCalendar2EventFill size={24} />}
@@ -73,6 +91,11 @@ function LeftNavigation() {
         label={"Báo cáo, thống kê"}
         icon={<BsFillBarChartFill size={24} />}
         path={`statistics`}
+      />
+        <NavItem
+        label={"Cài đặt"}
+        icon={<IoMdSettings size={30} />}
+        path={`settings`}
       />
     </div>
   );

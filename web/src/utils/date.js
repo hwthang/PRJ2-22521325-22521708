@@ -3,9 +3,9 @@ export function getToday() {
   return today.toISOString().split("T")[0];
 }
 
-export function formatDate(dateObj) {
-  return dateObj.toISOString().split("T")[0];
-}
+// export function formatDate(dateObj) {
+//   return dateObj.toISOString().split("T")[0];
+// }
 
 
 export function parseDate(dateStr) {
@@ -41,3 +41,15 @@ export function toDateInputValue(isoString) {
 
   return `${year}-${month}-${day}`;
 }
+
+export function formatDate(isoString) {
+  if (!isoString) return "";
+
+  const date = new Date(isoString);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0"); // Tháng từ 0–11
+  const year = date.getFullYear();
+
+  return `${day}/${month}/${year}`;
+}
+

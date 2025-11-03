@@ -1,453 +1,374 @@
-import React, { useEffect } from "react";
-import useForm from "../../../core/hooks/useForm";
-import { toDateInputValue } from "../../../utils/date";
+import { CameraIcon, Eye, EyeClosed, Loader } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import ChapterService from "../services/ChapterService";
-import Avatar from "../../../core/components/Avatar";
-import { getStatusBadge, getTypeBadge } from "../../../utils/badge";
-import address from "../../../utils/address";
+import defAvatar from "../../../core/assets/images/avatar.png";
+import apiClient from "../../../utils/api";
+import { toDateInputValue } from "../../../utils/date";
 
-function ChapterForm({ data, onSubmit, ...props }) {
-  const [officeProvinces, setOfficeProvinces] = React.useState([]);
-  const [officeCommunes, setOfficeCommunes] = React.useState([]);
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [loading, setLoading] = React.useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
-  const [pendingFormData, setPendingFormData] = React.useState(null);
-  const [errors, setErrors] = React.useState({});
+function ChapterForm({ chapterId = null }) {
+  const [chapter, setChapter] = useState(null);
+  const [formValues, setFormValues] = useState({
+    avatar: null, // Có thể là File hoặc object { path, ... }
+    username: "",
+    email: "",
+    phoneNumber: "",
+    password: "",
+    establishedAt: "",
+    name: "",
+    affiliated: "",
+    address: "",
+    status: "pending",
+  });
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const chapter = useForm();
+  // Load dữ liệu chi đoàn nếu có chapterId
+  useEffect(() => {
+    const fetchChapter = async () => {
+      if (!chapterId) return;
+      setLoading(true);
+      try {
+        const res = await apiClient.get(`/api/chapters/${chapterId}`);
+        const data = res.data;
 
-  // Validation rules
-  const validateRules = {
-    username: {
-      required: true,
-      pattern: /^[a-zA-Z0-9_]{3,20}$/,
-      message: "Tên đăng nhập phải từ 3-20 ký tự, chỉ chứa chữ cái, số và dấu _"
-    },
-    email: {
-      required: true,
-      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-      message: "Email không đúng định dạng"
-    },
-    name: {
-      required: true,
-      pattern: /^[a-zA-Z0-9À-ỹ\s.,-]{5,100}$/,
-      message: "Tên chi đoàn phải từ 5-100 ký tự"
-    },
-    affiliated: {
-      required: true,
-      pattern: /^[a-zA-Z0-9À-ỹ\s.,-]{5,100}$/,
-      message: "Tên đơn vị trực thuộc phải từ 5-100 ký tự"
-    },
-    office_detail: {
-      pattern: /^[a-zA-Z0-9À-ỹ\s\/.,-]{0,200}$/,
-      message: "Địa chỉ không được vượt quá 200 ký tự"
+        setChapter(data);
+        if (data) {
+          setFormValues({
+            avatar: data?.accountId?.avatar || null,
+            username: data?.accountId?.username || "",
+            email: data?.accountId?.email || "",
+            phoneNumber: data?.accountId?.phoneNumber || "",
+            password: data?.accountId?.password|| "",
+            establishedAt: toDateInputValue(data.establishedAt) || "",
+            name: data.name || "",
+            affiliated: data.affiliated || "",
+            address: data.address || "",
+            status: data?.accountId?.status || "pending",
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error("Không thể tải dữ liệu chi đoàn");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchChapter();
+  }, [chapterId]);
+
+  // Xử lý input change
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+    if (name === "avatar" && files?.length) {
+      setFormValues((prev) => ({ ...prev, avatar: files[0] }));
+    } else {
+      setFormValues((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  const validateField = (name, value) => {
-    const rule = validateRules[name];
-    if (!rule) return true;
-
-    let isValid = true;
-    let errorMessage = "";
-
-    if (rule.required && (!value || value.trim() === "")) {
-      isValid = false;
-      errorMessage = "Trường này là bắt buộc";
-    } else if (rule.pattern && value && !rule.pattern.test(value)) {
-      isValid = false;
-      errorMessage = rule.message;
-    } else if (rule.validate && value && !rule.validate(value)) {
-      isValid = false;
-      errorMessage = rule.message;
-    }
-
-    setErrors(prev => ({
-      ...prev,
-      [name]: isValid ? "" : errorMessage
-    }));
-
-    return isValid;
-  };
-
-  const validateForm = () => {
-    const formData = prepareFormData();
-    let isValid = true;
+  // Validation
+  const validate = () => {
     const newErrors = {};
+    if (!formValues.username.trim())
+      newErrors.username = "Tên đăng nhập là bắt buộc";
+    if (!formValues.email.trim()) newErrors.email = "Email là bắt buộc";
+    else if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formValues.email))
+      newErrors.email = "Email không hợp lệ";
+    if (!formValues.phoneNumber.trim())
+      newErrors.phoneNumber = "Số điện thoại là bắt buộc";
+    else if (!/^\+?\d{9,15}$/.test(formValues.phoneNumber))
+      newErrors.phoneNumber = "Số điện thoại không hợp lệ";
 
-    Object.keys(validateRules).forEach(field => {
-      const value = formData[field] || chapter.getFieldInForm(field);
-      const rule = validateRules[field];
-      
-      if (rule.required && (!value || value.trim() === "")) {
-        isValid = false;
-        newErrors[field] = "Trường này là bắt buộc";
-      } else if (rule.pattern && value && !rule.pattern.test(value)) {
-        isValid = false;
-        newErrors[field] = rule.message;
-      } else if (rule.validate && value && !rule.validate(value)) {
-        isValid = false;
-        newErrors[field] = rule.message;
-      }
-    });
+    if (!chapterId && !formValues.password)
+      newErrors.password = "Mật khẩu là bắt buộc";
+    else if (
+      !chapterId &&
+      formValues.password &&
+      formValues.password.length < 6
+    )
+      newErrors.password = "Mật khẩu tối thiểu 6 ký tự";
 
-    // Additional validation for select fields
-    const requiredSelectFields = ['office_province'];
-
-    requiredSelectFields.forEach(field => {
-      const value = chapter.getFieldInForm(field);
-      if (!value) {
-        isValid = false;
-        newErrors[field] = "Trường này là bắt buộc";
-      }
-    });
+    if (!formValues.name.trim()) newErrors.name = "Tên chi đoàn là bắt buộc";
+    if (!formValues.affiliated.trim())
+      newErrors.affiliated = "Đoàn trực thuộc là bắt buộc";
 
     setErrors(newErrors);
-    return isValid;
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleChange = (name, value) => {
-    if (isEditing) {
-      chapter.handleChangeFieldInForm(name, value);
-      // Validate field on change
-      validateField(name, value);
-    }
+  // Build FormData cho create/update
+  const buildFormData = () => {
+    const formData = new FormData();
+    Object.keys(formValues).forEach((key) => {
+      if (key === "avatar") {
+        if (formValues.avatar instanceof File) {
+          formData.append(key, formValues.avatar);
+        }
+        // Nếu avatar là object, backend có thể dùng path cũ, không cần append File
+      } else if (formValues[key] !== undefined && formValues[key] !== null) {
+        formData.append(key, formValues[key]);
+      }
+    });
+    return formData;
   };
 
-  const handleEdit = () => {
-    setIsEditing(true);
-    // Clear errors when starting to edit
-    setErrors({});
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    // Clear errors when canceling
-    setErrors({});
-    // Reset form to original data
-    if (data) {
-      chapter.setForm({
-        username: data?.username || "",
-        email: data?.email || "",
-        name: data?.profile?.name || "",
-        affiliated: data?.profile?.affiliated || "",
-        establishedAt: toDateInputValue(data?.profile?.establishedAt) || "",
-        office_province: data?.profile?.office?.province || "",
-        office_commune: data?.profile?.office?.commune || "",
-        office_detail: data?.profile?.office?.detail || "",
-      });
-    }
-  };
-
-  const prepareFormData = () => {
-    return {
-      username: chapter.getFieldInForm("username"),
-      email: chapter.getFieldInForm("email"),
-      name: chapter.getFieldInForm("name"),
-      affiliated: chapter.getFieldInForm("affiliated"),
-      establishedAt: chapter.getFieldInForm("establishedAt"),
-      office: {
-        province: chapter.getFieldInForm("office_province"),
-        commune: chapter.getFieldInForm("office_commune"),
-        detail: chapter.getFieldInForm("office_detail"),
-      },
-    };
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!isEditing) return;
-
-    // Validate entire form before submission
-    if (!validateForm()) {
-      alert("Vui lòng kiểm tra lại các trường thông tin");
-      return;
-    }
-
-    const formData = prepareFormData();
-    setPendingFormData(formData);
-    setShowConfirmDialog(true);
-  };
-
-  const handleConfirmUpdate = async () => {
+  // Tạo hoặc cập nhật chi đoàn
+  const handleSave = async () => {
+    if (!validate()) return;
     setLoading(true);
     try {
-      console.log("Submitted data:", pendingFormData);
-      await ChapterService.update(data._id, pendingFormData);
-      setIsEditing(false);
-      setShowConfirmDialog(false);
-      setPendingFormData(null);
-      setErrors({}); // Clear errors after successful update
+      const formData = buildFormData();
+      const res = chapterId
+        ? await apiClient.put(`/api/chapters/${chapterId}`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          })
+        : await apiClient.post("/api/chapters", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+
+      toast.success(
+        chapterId ? "Lưu thay đổi thành công" : "Thêm chi đoàn thành công"
+      );
+
+      if (!chapterId) {
+        setFormValues({
+          avatar: null,
+          username: "",
+          email: "",
+          phoneNumber: "",
+          password: "",
+          establishedAt: "",
+          name: "",
+          affiliated: "",
+          address: "",
+          status: "pending",
+        });
+      } else {
+        setFormValues((prev) => ({
+          ...prev,
+          avatar: res.avatar || prev.avatar,
+          status: res.status || prev.status,
+        }));
+      }
     } catch (error) {
-      console.error("Update error:", error);
+      console.error(error);
+      toast.error(
+        chapterId ? "Lưu thay đổi thất bại" : "Thêm chi đoàn thất bại"
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancelUpdate = () => {
-    setShowConfirmDialog(false);
-    setPendingFormData(null);
+  // Kích hoạt chi đoàn
+  const handleActivate = async () => {
+    if (!chapterId) return;
+    setLoading(true);
+    try {
+      await ChapterService.activateChapter(chapterId);
+      toast.success("Kích hoạt chi đoàn thành công");
+      setFormValues((prev) => ({ ...prev, status: "active" }));
+    } catch (error) {
+      console.error(error);
+      toast.error("Kích hoạt chi đoàn thất bại");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => {
-    const fetchAddressData = async () => {
-      const provinces = await address.getProvinces();
-      setOfficeProvinces(provinces || []);
-    };
-
-    fetchAddressData();
-  }, []);
-
-  useEffect(() => {
-    setOfficeCommunes(
-      address.getCommunesByProvince(
-        chapter.getFieldInForm("office_province") || ""
-      )
-    );
-  }, [chapter.getFieldInForm("office_province")]);
-
-  useEffect(() => {
-    if (data) {
-      chapter.setForm({
-        username: data?.username || "",
-        email: data?.email || "",
-        name: data?.profile?.name || "",
-        affiliated: data?.profile?.affiliated || "",
-        establishedAt: toDateInputValue(data?.profile?.establishedAt) || "",
-        office_province: data?.profile?.office?.province || "",
-        office_commune: data?.profile?.office?.commune || "",
-        office_detail: data?.profile?.office?.detail || "",
-      });
+  // Khóa chi đoàn
+  const handleLock = async () => {
+    if (!chapterId) return;
+    setLoading(true);
+    try {
+      await ChapterService.lockChapter(chapterId);
+      toast.success("Khóa chi đoàn thành công");
+      setFormValues((prev) => ({ ...prev, status: "locked" }));
+    } catch (error) {
+      console.error(error);
+      toast.error("Khóa chi đoàn thất bại");
+    } finally {
+      setLoading(false);
     }
-  }, [data]);
-
-  const getInputClass = (isEditing, hasError = false) => {
-    return `px-2 relative h-10 w-full border-2 rounded-lg transition-all ${
-      hasError 
-        ? "border-red-500 bg-red-50" 
-        : `border-gray-300 ${isEditing
-            ? "has-[input:focus]:border-blue-700 has-[select:focus]:border-blue-700 bg-white"
-            : "bg-gray-100"}`
-    }`;
   };
 
   return (
-    <>
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-12 gap-6 p-6">
-          {/* Avatar và badges */}
-          <div className="col-span-12 flex gap-6 justify-around flex-col md:col-span-2 md:row-span-4 rounded-lg">
-            <Avatar userId={data?._id} src={data?.profile?.avatar?.path}/>
-            <div className="flex gap-6 md:flex-col">
-              <div className="justify-center items-center flex relative h-10 w-full rounded-lg transition-all">
-                {getStatusBadge(data?.status)}
-              </div>
-              <div className="relative h-10 w-full justify-center items-center flex rounded-lg transition-all">
-                {getTypeBadge(data?.profile?.type)}
-              </div>
-            </div>
-          </div>
-
-          {/* Thông tin đăng nhập */}
-          <div className="col-span-12 flex gap-1 flex-col md:col-span-5">
-            <label className="font-semibold">Tên đăng nhập</label>
-            <div className={getInputClass(isEditing, errors.username)}>
+    <div className="grid grid-cols-12">
+      <div className="col-span-12 md:col-span-8 md:col-start-3 grid grid-cols-8 gap-6">
+        {/* Avatar */}
+        <div className="col-span-12 flex flex-col gap-1 md:col-span-2 md:row-span-2 items-center">
+          <div className="relative w-fit h-fit">
+            <img
+              src={
+                formValues.avatar instanceof File
+                  ? URL.createObjectURL(formValues.avatar)
+                  : formValues.avatar?.path || defAvatar
+              }
+              alt="avatar"
+              className="w-40 h-full aspect-square rounded-full bg-gray-200 shadow-xl border border-blue-500"
+            />
+            <label
+              htmlFor="avatar"
+              className="absolute bottom-0 right-0 bg-blue-500 text-white border border-blue-500 flex w-10 h-10 items-center justify-center rounded-full"
+            >
+              <CameraIcon />
               <input
-                className="h-full w-full outline-none bg-transparent"
-                value={chapter.getFieldInForm("username") || ""}
-                onChange={(e) => handleChange("username", e.target.value)}
-                disabled={!isEditing}
+                id="avatar"
+                name="avatar"
+                type="file"
+                className="hidden"
+                onChange={handleChange}
               />
-            </div>
-            {errors.username && (
-              <span className="text-red-500 text-sm">{errors.username}</span>
-            )}
+            </label>
           </div>
+        </div>
 
-          <div className="col-span-12 flex gap-1 flex-col md:col-span-5">
-            <label className="font-semibold">Email</label>
-            <div className={getInputClass(isEditing, errors.email)}>
-              <input
-                className="h-full w-full outline-none bg-transparent"
-                value={chapter.getFieldInForm("email") || ""}
-                onChange={(e) => handleChange("email", e.target.value)}
-                disabled={!isEditing}
-              />
-            </div>
-            {errors.email && (
-              <span className="text-red-500 text-sm">{errors.email}</span>
-            )}
-          </div>
+        {/* Username */}
+        <div className="col-span-12 flex flex-col gap-1 md:col-span-2">
+          <label className="font-semibold">Tên đăng nhập</label>
+          <input
+            name="username"
+            value={formValues.username}
+            onChange={handleChange}
+            className="border h-10 rounded-md border-gray-300 px-4 outline-none bg-transparent"
+          />
+          {errors.username && (
+            <p className="text-red-500 text-sm">{errors.username}</p>
+          )}
+        </div>
 
-          {/* Thông tin chi đoàn */}
-          <div className="col-span-12 flex gap-1 flex-col md:col-span-4">
-            <label className="font-semibold">Tên chi đoàn</label>
-            <div className={getInputClass(isEditing, errors.name)}>
-              <input
-                className="h-full w-full outline-none bg-transparent"
-                value={chapter.getFieldInForm("name") || ""}
-                onChange={(e) => handleChange("name", e.target.value)}
-                disabled={!isEditing}
-              />
-            </div>
-            {errors.name && (
-              <span className="text-red-500 text-sm">{errors.name}</span>
-            )}
-          </div>
+        {/* Email */}
+        <div className="col-span-12 flex flex-col gap-1 md:col-span-4">
+          <label className="font-semibold">Email</label>
+          <input
+            name="email"
+            value={formValues.email}
+            onChange={handleChange}
+            className="border h-10 rounded-md border-gray-300 px-4 outline-none bg-transparent"
+          />
+          {errors.email && (
+            <p className="text-red-500 text-sm">{errors.email}</p>
+          )}
+        </div>
 
-          <div className="col-span-12 flex gap-1 flex-col md:col-span-4">
-            <label className="font-semibold">Đơn vị trực thuộc</label>
-            <div className={getInputClass(isEditing, errors.affiliated)}>
-              <input
-                className="h-full w-full outline-none bg-transparent"
-                value={chapter.getFieldInForm("affiliated") || ""}
-                onChange={(e) => handleChange("affiliated", e.target.value)}
-                disabled={!isEditing}
-              />
-            </div>
-            {errors.affiliated && (
-              <span className="text-red-500 text-sm">{errors.affiliated}</span>
-            )}
-          </div>
+        {/* Phone */}
+        <div className="col-span-12 flex flex-col gap-1 md:col-span-2">
+          <label className="font-semibold">Số điện thoại</label>
+          <input
+            name="phoneNumber"
+            value={formValues.phoneNumber}
+            onChange={handleChange}
+            className="border h-10 rounded-md border-gray-300 px-4 outline-none bg-transparent"
+          />
+          {errors.phoneNumber && (
+            <p className="text-red-500 text-sm">{errors.phoneNumber}</p>
+          )}
+        </div>
 
-          <div className="col-span-12 flex gap-1 flex-col md:col-span-2">
-            <label className="font-semibold">Ngày thành lập</label>
-            <div className={getInputClass(isEditing)}>
-              <input
-                type="date"
-                className="h-full w-full outline-none bg-transparent"
-                value={chapter.getFieldInForm("establishedAt") || ""}
-                onChange={(e) => handleChange("establishedAt", e.target.value)}
-                disabled={!isEditing}
-              />
-            </div>
-          </div>
-
-          {/* Địa chỉ trụ sở */}
-          <div className="col-span-12 flex gap-1 flex-col md:col-span-10">
-            <label className="font-semibold">Địa chỉ trụ sở</label>
-            <div className="relative w-full grid md:grid-cols-3 gap-6 rounded-lg transition-all">
-              <div className={getInputClass(isEditing, errors.office_province)}>
-                <select
-                  className="w-full h-full outline-none bg-transparent"
-                  value={chapter.getFieldInForm("office_province") || ""}
-                  onChange={(e) =>
-                    handleChange("office_province", e.target.value)
-                  }
-                  disabled={!isEditing}
-                >
-                  <option value="" disabled>
-                    Tỉnh/Thành phố
-                  </option>
-                  {officeProvinces.map((province, index) => (
-                    <option key={index} value={province}>
-                      {province}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className={getInputClass(isEditing, errors.office_commune)}>
-                <select
-                  className="w-full h-full outline-none bg-transparent"
-                  value={chapter.getFieldInForm("office_commune") || ""}
-                  onChange={(e) =>
-                    handleChange("office_commune", e.target.value)
-                  }
-                  disabled={!isEditing}
-                >
-                  <option value={""} disabled>
-                    Phường/Xã
-                  </option>
-                  {officeCommunes.map((item, index) => (
-                    <option key={index} value={item.commune}>
-                      {item.commune}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className={getInputClass(isEditing, errors.office_detail)}>
-                <input
-                  className="h-full w-full outline-none bg-transparent"
-                  value={chapter.getFieldInForm("office_detail") || ""}
-                  onChange={(e) =>
-                    handleChange("office_detail", e.target.value)
-                  }
-                  placeholder="Nhập số nhà, đường, khu phố, ..."
-                  disabled={!isEditing}
-                />
-              </div>
-            </div>
-            {(errors.office_province || errors.office_commune || errors.office_detail) && (
-              <span className="text-red-500 text-sm">
-                {errors.office_province || errors.office_commune || errors.office_detail}
-              </span>
-            )}
-          </div>
-
-          {/* Nút submit ở cuối form */}
-          <div className="col-span-12 flex justify-center items-center grid grid-cols-12 mb-4 gap-6 md:col-span-10 md:mb-0">
-            {!isEditing ? (
-              <button
-                type="button"
-                onClick={handleEdit}
-                className="col-span-12 md:col-span-2 md:col-start-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition-all"
-              >
-                Chỉnh sửa
-              </button>
+        <div className="col-span-12 flex flex-col gap-1 md:col-span-4">
+          <label className="font-semibold">Mật khẩu</label>
+          <div className="border h-10 rounded-md border-gray-300 px-4 flex items-center gap-2">
+            <input
+              name="password"
+              type={showPassword ? "text" : "password"}
+              value={formValues.password}
+              onChange={handleChange}
+              className="h-full w-full outline-none bg-transparent"
+            />
+            {showPassword ? (
+              <EyeClosed onClick={() => setShowPassword(false)} />
             ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className=" col-span-6 md:col-span-2  md:col-start-5 bg-gray-500 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg transition-all"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className=" col-span-6 md:col-span-2  bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg transition-all disabled:opacity-50"
-                >
-                  {loading ? "Đang xử lý..." : "Cập nhật"}
-                </button>
-              </>
+              <Eye onClick={() => setShowPassword(true)} />
             )}
           </div>
+          {errors.password && (
+            <p className="text-red-500 text-sm">{errors.password}</p>
+          )}
         </div>
-      </form>
 
-      {/* Popup xác nhận */}
-      {showConfirmDialog && (
-        <div className="fixed inset-0 0 flex items-center justify-center z-50">
-          <div className="bg-gray-400 opacity-50 h-full w-full absolute top-0 left-0 z-10"></div>
-          <div className="bg-white opacity-100 rounded-lg p-6 max-w-md w-full mx-4 z-20">
-            <h3 className="text-lg font-semibold mb-4">Xác nhận cập nhật</h3>
-            <p className="text-gray-600 mb-6">
-              Bạn có chắc chắn muốn cập nhật thông tin chi đoàn này?
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={handleCancelUpdate}
-                disabled={loading}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium disabled:opacity-50"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleConfirmUpdate}
-                disabled={loading}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg disabled:opacity-50"
-              >
-                {loading ? "Đang xử lý..." : "Xác nhận"}
-              </button>
-            </div>
-          </div>
+        {/* Other fields: establishedAt, name, affiliated, address */}
+        <div className="col-span-12 flex flex-col gap-1 md:col-span-2">
+          <label className="font-semibold">Ngày thành lập</label>
+          <input
+            type="date"
+            name="establishedAt"
+            value={formValues.establishedAt}
+            onChange={handleChange}
+            className="border h-10 rounded-md border-gray-300 px-4 outline-none bg-transparent"
+          />
         </div>
-      )}
-      
-    </>
+
+        <div className="col-span-12 flex flex-col gap-1 md:col-span-6">
+          <label className="font-semibold">Tên chi đoàn</label>
+          <input
+            name="name"
+            value={formValues.name}
+            onChange={handleChange}
+            className="border h-10 rounded-md border-gray-300 px-4 outline-none bg-transparent"
+          />
+          {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+        </div>
+
+        <div className="col-span-12 flex flex-col gap-1 md:col-span-4">
+          <label className="font-semibold">Đoàn trực thuộc</label>
+          <textarea
+            name="affiliated"
+            value={formValues.affiliated}
+            onChange={handleChange}
+            className="border h-20 resize-none rounded-md border-gray-300 p-2 outline-none bg-transparent"
+          />
+          {errors.affiliated && (
+            <p className="text-red-500 text-sm">{errors.affiliated}</p>
+          )}
+        </div>
+
+        <div className="col-span-12 flex flex-col gap-1 md:col-span-4">
+          <label className="font-semibold">Địa chỉ</label>
+          <textarea
+            name="address"
+            value={formValues.address}
+            onChange={handleChange}
+            className="border h-20 resize-none rounded-md border-gray-300 p-2 outline-none bg-transparent"
+          />
+        </div>
+
+        {/* Buttons */}
+        <div className="col-span-12 flex flex-wrap gap-6 md:col-span-8 items-center justify-center mt-4">
+          <button
+            onClick={handleSave}
+            disabled={loading}
+            className="bg-blue-500 text-white h-10 min-w-fit flex-1 px-4 rounded-md flex items-center justify-center gap-2"
+          >
+            {loading && <Loader className="animate-spin w-4 h-4" />}
+            {chapterId ? "Lưu thay đổi" : "Thêm mới"}
+          </button>
+
+          {/* {chapterId && formValues.status !== "active" && (
+            <button
+              onClick={handleActivate}
+              disabled={loading}
+              className="bg-green-500 text-white h-10 min-w-fit flex-1 px-4 rounded-md flex items-center justify-center gap-2"
+            >
+              {loading && <Loader className="animate-spin w-4 h-4" />}
+              Kích hoạt
+            </button>
+          )}
+
+          {chapterId && formValues.status === "active" && (
+            <button
+              onClick={handleLock}
+              disabled={loading}
+              className="bg-red-500 text-white h-10 min-w-fit flex-1 px-4 rounded-md flex items-center justify-center gap-2"
+            >
+              {loading && <Loader className="animate-spin w-4 h-4" />}
+              Khóa
+            </button>
+          )} */}
+        </div>
+      </div>
+    </div>
   );
 }
 

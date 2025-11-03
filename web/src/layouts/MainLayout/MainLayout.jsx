@@ -6,6 +6,7 @@ import RightChatPopup from "./RightChatPopup";
 import Header from "./Header";
 
 function MainLayout() {
+  
   return (
     <div className="relative flex flex-col h-screen w-screen text-blue-900">
       <div className="h-[10vh] w-full bg-blue-950">
@@ -18,7 +19,7 @@ function MainLayout() {
         <div className="h-full w-full bg-gray-100 overflow-auto" >
           <Outlet/>
         </div>
-       
+       <RightChatPopup/>
       
       </div>
     </div>

@@ -17,6 +17,22 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AccountView from "./features/account/views/AccountView";
 import AccountDetail from "./features/account/components/AccountDetail";
+import AccountListPage from "./features/account/pages/AccountListPage";
+import AccountDetailPage from "./features/account/pages/AccountDetailPage";
+import AcccountCreatePage from "./features/account/pages/AcccountCreatePage";
+import ChapterListPage from "./features/chapter/pages/ChapterListPage";
+import ChapterDetailPage from "./features/chapter/pages/ChapterDetailPage";
+import MemberListPage from "./features/member/pages/MemberListPage";
+import MemberDetailPage from "./features/member/pages/MemberDetailPage";
+import EventListPage from "./features/event/pages/EventListPage";
+import EventDetailPage from "./features/event/pages/EventDetailPage";
+import DocumentListPage from "./features/document/pages/DocumentListPage";
+import DocumentDetailPage from "./features/document/pages/DocumentDetailPage";
+import SurveyListPage from "./features/survey/pages/SurveyListPage";
+import SurveyDetailView from "./features/survey/views/SurveyDetailView";
+import SurveyDetailPage from "./features/survey/pages/SurveyDetailPage";
+import ChapterCreatePage from "./features/chapter/pages/ChapterCreatePage";
+import MemberCreatePage from "./features/member/pages/MemberCreatePage";
 
 function App() {
   return (
@@ -28,11 +44,29 @@ function App() {
           <Route path="forgot-password" element={<ForgotPasswordView />} />
         </Route>
 
-        <Route path="/cds" element={<MainLayout />}>
+        <Route element={<MainLayout />}>
           <Route path="dashboard" element={<DashboardView />} />
 
-          <Route path="accounts" element={<AccountView />} />
-          <Route path="accounts/:id" element={<AccountDetail/>} />
+          <Route path="accounts" element={<AccountListPage />} />
+          <Route path="accounts/:id" element={<AccountDetailPage />} />
+          <Route path="accounts/create" element={<AcccountCreatePage />} />
+
+          <Route path="chapters" element={<ChapterListPage />} />
+          <Route path="chapters/:id" element={<ChapterDetailPage />} />
+          <Route path="chapters/create" element={<ChapterCreatePage />} />
+
+          <Route path="members" element={<MemberListPage />} />
+          <Route path="members/:id" element={<MemberDetailPage />} />
+          <Route path="members/create" element={<MemberCreatePage />} />
+
+          <Route path="events" element={<EventListPage />} />
+          <Route path="events/:id" element={<EventDetailPage />} />
+
+          <Route path="documents" element={<DocumentListPage />} />
+          <Route path="documents/:id" element={<DocumentDetailPage />} />
+
+          <Route path="surveys" element={<SurveyListPage />} />
+          <Route path="surveys/:id" element={<SurveyDetailPage />} />
 
           <Route path="chapters" element={<ChapterView />} />
           <Route path="events" element={<EventView />} />

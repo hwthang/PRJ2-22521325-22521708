@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 const useForm = (init) => {
-  const [form, setForm] = useState(init || {}); // nên khởi tạo {} thay vì null
+  const [form, setForm] = useState(init || {});
 
   const handleChangeFieldInForm = (name, value) => {
     setForm((prev) => ({ ...prev, [name]: value }));

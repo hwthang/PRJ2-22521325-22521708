@@ -119,7 +119,7 @@ function RightChatPopup() {
     setOpenPopup((prev) => !prev);
   };
   return (
-    <div className="w-full h-full relative">
+    <div className="w-fit h-full relative">
       <div className="absolute bottom-0 right-0 pr-2 flex items-end gap-2">
         {/* Popup chat */}
         {openPopup && (

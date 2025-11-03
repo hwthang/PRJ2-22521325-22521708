@@ -290,7 +290,7 @@ function StatusFilter({ selected, onChange }) {
   return (
     <div className="flex-1 flex md:justify-around gap-4 items-center bg-blue-100 p-2 rounded-lg">
       <span className="text-nowrap font-medium w-30 md:w-fit">Tình trạng:</span>
-      <ul className="flex w-full md:justify-around gap-4 items-center flex-wrap">
+      <ul className="flex w-full md:justify-start gap-4 items-center flex-wrap">
         {statuses.map((s) => (
           <li key={s.value} className="flex gap-2 items-center justify-center">
             <input

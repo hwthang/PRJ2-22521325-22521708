@@ -24,7 +24,7 @@ apiClient.interceptors.request.use(
 
 // Response interceptor: xử lý lỗi chung
 apiClient.interceptors.response.use(
-  (response) => response.data,
+  (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       // logout hoặc redirect login
