@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import DocumentUpload from "./DocumentUpload";
+import filePdf from "../../../core/assets/file/fileASM.pdf"
 
 const MOCK_DOCUMENT = {
   name: "Quyết định thành lập chi đoàn",
@@ -9,7 +10,7 @@ const MOCK_DOCUMENT = {
   status: "issued",
   file: {
     name: "quyetdinh_chidoan.pdf",
-    url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+    url: filePdf,
   },
 };
 
@@ -108,8 +109,22 @@ const DocumentDetailForm = () => {
         <DocumentUpload onFileSelect={handleFileSelect} mockFile={document.file} />
       </div>
 
+      {/* Mock UI xem PDF */}
+      {document.file?.url && (
+        <div className="col-span-12 md:col-span-8 md:col-start-3 mt-4">
+          <label className="font-semibold text-gray-700 mb-2 block">Xem file PDF</label>
+          <div className="border rounded-md overflow-hidden">
+            <iframe
+              src={document.file.url}
+              title={document.file.name}
+              className="w-full h-120"
+            ></iframe>
+          </div>
+        </div>
+      )}
+
       {/* Nút lưu */}
-      <div className="col-span-12 md:col-span-8 md:col-start-3 flex justify-end">
+      <div className="col-span-12 md:col-span-8 md:col-start-3 flex justify-end mt-4">
         <button
           onClick={handleSubmit}
           className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition"

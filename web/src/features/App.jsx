@@ -1,38 +1,40 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
-import AuthLayout from "../src/layouts/AuthLayout";
-import LoginView from "./features/auth/views/LoginView";
-import RegisterView from "./features/auth/views/RegisterView";
-import ForgotPasswordView from "./features/auth/views/ForgotPasswordView";
-import MainLayout from "./layouts/MainLayout/MainLayout";
-import DashboardView from "./features/dashboard/views/DashboardView";
-import ChapterView from "./features/chapter/views/ChapterView";
-import EventView from "./features/event/views/EventView";
-import DocumentView from "./features/document/views/DocumentView";
-import SurveyView from "./features/survey/views/SurveyView";
-import StatisticView from "./features/statistic/views/StatisticView";
-import ProfileView from "./features/profile/views/ProfileView";
-import NotificationView from "./features/notification/views/NotificationView";
+import AuthLayout from "../layouts/AuthLayout";
+import LoginView from "./auth/views/LoginView";
+import RegisterView from "./auth/views/RegisterView";
+import ForgotPasswordView from "./auth/views/ForgotPasswordView";
+import MainLayout from "../layouts/MainLayout/MainLayout";
+import DashboardView from "./dashboard/views/DashboardView";
+import ChapterView from "./chapter/views/ChapterView";
+import EventView from "./event/views/EventView";
+import DocumentView from "./document/views/DocumentView";
+import SurveyView from "./survey/views/SurveyView";
+import StatisticView from "./statistic/views/StatisticView";
+import ProfileView from "./profile/views/ProfileView";
+import NotificationView from "./notification/views/NotificationView";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import AccountView from "./features/account/views/AccountView";
-import AccountDetail from "./features/account/components/AccountDetail";
-import AccountListPage from "./features/account/pages/AccountListPage";
-import AccountDetailPage from "./features/account/pages/AccountDetailPage";
-import AcccountCreatePage from "./features/account/pages/AcccountCreatePage";
-import ChapterListPage from "./features/chapter/pages/ChapterListPage";
-import ChapterDetailPage from "./features/chapter/pages/ChapterDetailPage";
-import MemberListPage from "./features/member/pages/MemberListPage";
-import MemberDetailPage from "./features/member/pages/MemberDetailPage";
-import EventListPage from "./features/event/pages/EventListPage";
-import EventDetailPage from "./features/event/pages/EventDetailPage";
-import DocumentListPage from "./features/document/pages/DocumentListPage";
-import DocumentDetailPage from "./features/document/pages/DocumentDetailPage";
-import SurveyListPage from "./features/survey/pages/SurveyListPage";
-import SurveyDetailView from "./features/survey/views/SurveyDetailView";
-import SurveyDetailPage from "./features/survey/pages/SurveyDetailPage";
-import ChapterCreatePage from "./features/chapter/pages/ChapterCreatePage";
-import MemberCreatePage from "./features/member/pages/MemberCreatePage";
+import AccountView from "./account/views/AccountView";
+import AccountDetail from "./account/components/AccountDetail";
+import AccountListPage from "./account/pages/AccountListPage";
+import AccountDetailPage from "./account/pages/AccountDetailPage";
+import AcccountCreatePage from "./account/pages/AcccountCreatePage";
+import ChapterListPage from "./chapter/pages/ChapterListPage";
+import ChapterDetailPage from "./chapter/pages/ChapterDetailPage";
+import MemberListPage from "./member/pages/MemberListPage";
+import MemberDetailPage from "./member/pages/MemberDetailPage";
+import EventListPage from "./event/pages/EventListPage";
+import EventDetailPage from "./event/pages/EventDetailPage";
+import DocumentListPage from "./document/pages/DocumentListPage";
+import DocumentDetailPage from "./document/pages/DocumentDetailPage";
+import SurveyListPage from "./survey/pages/SurveyListPage";
+import SurveyDetailView from "./survey/views/SurveyDetailView";
+import SurveyDetailPage from "./survey/pages/SurveyDetailPage";
+import ChapterCreatePage from "./chapter/pages/ChapterCreatePage";
+import MemberCreatePage from "./member/pages/MemberCreatePage";
+import DoSurveyPage from "./survey/pages/DoSurveyPage";
+import EventRegistrationPage from "./event/pages/EventRegistrationPage";
 
 function App() {
   return (
@@ -61,11 +63,13 @@ function App() {
 
           <Route path="events" element={<EventListPage />} />
           <Route path="events/:id" element={<EventDetailPage />} />
+          <Route path="registration" element={<EventRegistrationPage />} />
 
           <Route path="documents" element={<DocumentListPage />} />
           <Route path="documents/:id" element={<DocumentDetailPage />} />
 
           <Route path="surveys" element={<SurveyListPage />} />
+          <Route path="surveys/do" element={<DoSurveyPage />} />
           <Route path="surveys/:id" element={<SurveyDetailPage />} />
 
           <Route path="chapters" element={<ChapterView />} />

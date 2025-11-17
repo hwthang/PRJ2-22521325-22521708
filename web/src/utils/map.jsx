@@ -1,3 +1,5 @@
+import { Ban, CircleCheck, ClockFading } from "lucide-react";
+
 export const ROLE = [
   {
     value: "admin",
@@ -69,3 +71,21 @@ export const POSITION = [
     style: "bg-cyan-200 text-cyan-800",
   },
 ];
+
+export const STATUS_MAP = {
+  active: {
+    icon: <CircleCheck />,
+    label: "Hoạt động",
+    color: "bg-green-100 text-green-500", // Giảm độ đậm của nền để chữ nổi hơn
+  },
+  pending: {
+    icon: <ClockFading />,
+    label: "Chờ duyệt",
+    color: "bg-yellow-100 text-yellow-700",
+  },
+  locked: {
+    icon: <Ban />,
+    label: "Đã khóa",
+    color: "bg-red-100 text-red-700",
+  },
+};
