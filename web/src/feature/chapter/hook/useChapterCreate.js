@@ -1,26 +1,24 @@
 import React from "react";
-import ChapterService from "../service/ChapterService";
-import { toast } from "react-toastify";
+import apiClient from "../../../utils/api";
 
-function useChapterCreate() {
-  const submit = async (formData) => {
-    try {
-      const res = await ChapterService.createChapter(formData);
-      console.log(res);
-      // ... (Giữ nguyên logic xử lý lỗi) ...
-      if (typeof res == "string") {
-        toast.error(res);
-        return 0;
-      }
-      toast.success("Tạo chi đoàn thành công");
-      return 1;
-    } catch (error) {
-      toast.error("Có lỗi khi tạo chi đoàn");
-      return 0;
+const useChapterCreate = () => {
+  const createNewChapter = async (
+    data = {
+      username: "dongb",
+      password: "Cds@",
+      email: "dongb.qldv@gmail.com",
+      phoneNumber: "0987654322",
+      name: "Chi đoàn khu phố Đông B",
+      affliated: "Đoàn phường Đông Hòa",
+      establishedAt: "1990-01-01",
+      address: "19 Trần Quang Khải, phường Đông Hòa, thành phố Hồ Chí Minh",
     }
+  ) => {
+    const response = await apiClient.post("/api/chapters", data);
+    return response;
   };
 
-  return { submit };
-}
+  return { createNewChapter };
+};
 
 export default useChapterCreate;

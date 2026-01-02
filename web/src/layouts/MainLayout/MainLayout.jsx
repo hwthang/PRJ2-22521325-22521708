@@ -9,17 +9,17 @@ function MainLayout() {
   
   return (
     <div className="relative flex flex-col h-screen w-screen text-blue-900">
-      <div className="h-[10vh] w-full bg-blue-950">
+      {/* <div className="h-[10vh] w-full bg-blue-950">
         <Header />
-      </div>
-      <div className="relative flex h-[90vh] max-w-[100vw] overflow-auto">
+      </div> */}
+      <div className="relative flex h-[100vh] max-w-[100vw] overflow-auto">
         <div className="w-fit">
           <LeftNavigation />
         </div>
         <div className="h-full w-full overflow-auto relative z-0" >
           <Outlet/>
         </div>
-       <RightChatPopup/>
+       {/* <RightChatPopup/> */}
       
       </div>
     </div>

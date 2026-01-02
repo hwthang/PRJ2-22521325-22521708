@@ -1,133 +1,114 @@
-import React, { useEffect, useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
-// Import các icon tương đương từ lucide-react
-import { 
-  Home, // Trang chủ (RiBubbleChartFill)
-  Users, // Cơ sở đoàn (RiUserCommunityFill)
-  UserCheck, // Đoàn viên (FaUserGraduate)
-  Calendar, // Sự kiện (BsCalendar2EventFill)
-  Zap, // Tham gia (MdLocalFireDepartment)
-  FileText, // Tài liệu (HiClipboardDocumentList)
-  ClipboardList, // Khảo sát (SiGoogleforms hoặc RiSurveyFill)
-  BarChart2, // Báo cáo, thống kê (BsFillBarChartFill)
-  Settings, // Cài đặt (IoMdSettings)
-  Menu, // Menu toggle (FiMenu)
-} from "lucide-react"; 
+import React, { useEffect, useState } from "react";
+import {
+  Home,
+  Users,
+  UserCheck,
+  Calendar,
+  Zap,
+  FileText,
+  ClipboardList,
+  BarChart2,
+  MessageCircle,
+  LogOut, // Import icon đăng xuất
+} from "lucide-react";
 
-import NavItem from "../../core/components/Navigation/NavItem"; // Giả định NavItem sử dụng icon component
-import permission from "../../utils/permission"; // Giữ nguyên
-import { useAccess } from "../../core/context/AccessContext"; // Giữ nguyên
-// Import nếu bạn cần icon Tài khoản bị comment
-// import { UserCog } from 'lucide-react'; 
+import NavItem from "../../core/components/Navigation/NavItem";
+import customCache from "../../utils/customCache";
+import { useNavigate } from "react-router-dom"; // Giả sử bạn dùng react-router
 
 function LeftNavigation() {
-  const [showNav, setShowNav] = useState(false);
-  const dropdownRef = useRef(null);
-  const accessData = useAccess();
-  const { user } = accessData;
-
-
-  useEffect(() => {
-    console.log(user)
-    const handleClickOutside = (e) => {
-      // Nếu click bên ngoài dropdown
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setShowNav(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-
-    // cleanup khi component unmount
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  const [role, setRole] = useState();
+  const navigate = useNavigate();
   
-  // Icon Size: Lucide icons được định nghĩa bằng className w/h, 
-  // nhưng nếu NavItem nhận component, ta có thể truyền size mặc định (ví dụ: 24)
-  const ICON_SIZE = 24; 
+  useEffect(() => {
+    setRole(customCache.myAccount?.get().type);
+  }, []);
+
+  const handleLogout = () => {
+    // Xử lý logic đăng xuất tại đây
+    localStorage.removeItem("my_account");
+    customCache.myAccount?.clear(); 
+    navigate("/");
+  };
+
+  const ICON_SIZE = 20; // Giảm nhẹ size để khớp với text-sm
 
   return (
     <div
-      // Thay vì onClick mở nav, thường chúng ta sẽ có một nút toggle riêng
-      // Tuy nhiên, giữ nguyên logic click vào sidebar sẽ mở rộng
-      onClick={() => setShowNav(true)} 
-      ref={dropdownRef}
-      className={`${
-        showNav ? "w-60" : "w-16 "
-      } gap-2 flex h-full flex-col justify-start relative border-r border-gray-200 hide-scrollbar py-10 text-gray-700 overflow-auto transition-all duration-500 ease-in-out`}
+      className="w-60 flex h-full flex-col justify-between border-r border-blue-50 bg-white py-8 text-sm text-slate-600 transition-all duration-500 ease-in-out"
     >
-      {/* Nút Toggle (Thêm vào đây nếu bạn muốn có nút toggle) */}
-      {/* <button 
-          onClick={(e) => {e.stopPropagation(); setShowNav(!showNav)}}
-          className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100"
-      >
-        <Menu size={24} /> 
-      </button> */}
-
-
-      <NavItem
-        label={"Trang chủ"}
-        icon={<Home size={ICON_SIZE} />} // Home (thay RiBubbleChartFill)
-        path={`dashboard`}
-      />
-
-      {/* {permission.hasPermission(user.role, "view_accounts") && (
+      {/* PHẦN TRÊN: DANH SÁCH MENU */}
+      <div className="flex flex-col gap-1 px-3 overflow-y-auto hide-scrollbar">
         <NavItem
-          label={"Tài khoản"}
-          icon={<UserCog size={ICON_SIZE} />} // UserCog (thay FaUserGroup)
-          path={`accounts`}
+          label={"Trang chủ"}
+          icon={<Home size={ICON_SIZE} />}
+          path={`${role}/dashboard`}
         />
-      )} */}
 
-      <NavItem
-        label={"Cơ sở đoàn"}
-        icon={<Users size={ICON_SIZE} />} // Users (thay RiUserCommunityFill)
-        path={`chapters`}
-      />
+        <NavItem
+          role={["admin"]}
+          label={"Cơ sở đoàn"}
+          icon={<Users size={ICON_SIZE} />}
+          path={`${role}/chapters`}
+        />
 
-      <NavItem
-        label={"Đoàn viên"}
-        icon={<UserCheck size={ICON_SIZE} />} // UserCheck (thay FaUserGraduate)
-        path={`members`}
-      />
-      
-      <NavItem
-        label={"Sự kiện"}
-        icon={<Calendar size={ICON_SIZE} />} // Calendar (thay BsCalendar2EventFill)
-        path={`events`}
-      />
-      
-      <NavItem
-        label={"Tham gia"}
-        icon={<Zap size={ICON_SIZE} />} // Zap (thay MdLocalFireDepartment)
-        path={`registration`}
-      />
-      
-      <NavItem
-        label={"Tài liệu"}
-        icon={<FileText size={ICON_SIZE} />} // FileText (thay HiClipboardDocumentList)
-        path={`documents`}
-      />
-      
-      <NavItem
-        label={"Khảo sát"}
-        icon={<ClipboardList size={ICON_SIZE} />} // ClipboardList (thay SiGoogleforms)
-        path={`surveys`}
-      />
-      
-      <NavItem
-        label={"Báo cáo, thống kê"}
-        icon={<BarChart2 size={ICON_SIZE} />} // BarChart2 (thay BsFillBarChartFill)
-        path={`statistics`}
-      />
-      
-      <NavItem
-        label={"Cài đặt"}
-        icon={<Settings size={ICON_SIZE} />} // Settings (thay IoMdSettings)
-        path={`settings`}
-      />
+        <NavItem
+          role={["admin", "chapter"]}
+          label={"Đoàn viên"}
+          icon={<UserCheck size={ICON_SIZE} />}
+          path={`${role}/members`}
+        />
+
+        <NavItem
+          label={"Sự kiện"}
+          icon={<Calendar size={ICON_SIZE} />}
+          path={`${role}/events`}
+        />
+
+        <NavItem
+          role={["member"]}
+          label={"Tham gia"}
+          icon={<Zap size={ICON_SIZE} />}
+          path={`${role}/registrations`}
+        />
+
+        <NavItem
+          label={"Tài liệu"}
+          icon={<FileText size={ICON_SIZE} />}
+          path={`${role}/documents`}
+        />
+
+        <NavItem
+          label={"Khảo sát"}
+          icon={<ClipboardList size={ICON_SIZE} />}
+          path={`${role}/surveys`}
+        />
+
+        {/* <NavItem
+          role={["chapter"]}
+          label={"Báo cáo, thống kê"}
+          icon={<BarChart2 size={ICON_SIZE} />}
+          path={`${role}/statistics`}
+        /> */}
+
+        <NavItem
+          role={["chapter", "member"]}
+          label={"Trò chuyện"}
+          icon={<MessageCircle size={ICON_SIZE} />}
+          path={`${role}/chat`}
+        />
+      </div>
+
+      {/* PHẦN DƯỚI: ĐĂNG XUẤT */}
+      <div className="px-3 pt-4 border-t border-slate-50">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-red-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200 group"
+        >
+          <LogOut size={ICON_SIZE} className="group-hover:-translate-x-1 transition-transform" />
+          <span className="font-bold uppercase tracking-wider text-[11px]">Đăng xuất</span>
+        </button>
+      </div>
     </div>
   );
 }

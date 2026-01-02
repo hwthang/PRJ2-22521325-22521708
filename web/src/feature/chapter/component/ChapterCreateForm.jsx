@@ -1,162 +1,215 @@
 import React, { useState } from "react";
-import CustomInput from "../shared/CustomInput";
-import { defAvatar } from "../../../core/assets/images";
-import { Camera, Circle, Eye, EyeClosed, LoaderCircle, Plus } from "lucide-react";
-import { toDateInputValue } from "../../../utils/date";
+import CustomInput from "../../component/custom/CustomInput";
+import CustomPassword from "../../component/custom/CustomPassword";
+import CustomTextArea from "../../component/custom/CustomTextArea";
+import { PlusSquare, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import useForm from "../../../core/hooks/useForm";
+import useChapterCreate from "../hook/useChapterCreate";
+import { CHAPTER_AFFILIATED } from "../shared/ChapterMap";
 
-function ChapterCreateForm({ onSubmit }) {
-  const [form, setForm] = useState({});
-  const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(form.avatar);
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+const ChapterCreateForm = () => {
+  const formInstance = useForm();
+  const { createNewChapter } = useChapterCreate();
 
-  // Handle input changes
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState({ type: "", message: "" });
+  const [errors, setErrors] = useState({}); // state lưu lỗi validate
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    formInstance.handleChangeFieldInForm(name, value);
+    setErrors((prev) => ({ ...prev, [name]: "" })); // xóa lỗi khi user sửa
   };
 
-  // Handle avatar change
-  const handleAvatarChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+  const validate = () => {
+    const newErrors = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[0-9]{10,15}$/; // tùy chuẩn bạn muốn
+
+    if (!formInstance.getFieldInForm("username")) {
+      newErrors.username = "Tên đăng nhập không được để trống";
+    }
+
+    if (!formInstance.getFieldInForm("email")) {
+      newErrors.email = "Email không được để trống";
+    } else if (!emailRegex.test(formInstance.getFieldInForm("email"))) {
+      newErrors.email = "Email không hợp lệ";
+    }
+
+    if (!formInstance.getFieldInForm("phoneNumber")) {
+      newErrors.phoneNumber = "Số điện thoại không được để trống";
+    } else if (!phoneRegex.test(formInstance.getFieldInForm("phoneNumber"))) {
+      newErrors.phoneNumber = "Số điện thoại không hợp lệ";
+    }
+
+    if (!formInstance.getFieldInForm("password")) {
+      newErrors.password = "Mật khẩu không được để trống";
+    } else if (formInstance.getFieldInForm("password").length < 6) {
+      newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
+    }
+
+    if (!formInstance.getFieldInForm("name")) {
+      newErrors.name = "Tên chi đoàn không được để trống";
+    }
+
+    const affiliatedValue = formInstance.getFieldInForm("affiliated");
+    if (!affiliatedValue) {
+      newErrors.affiliated = "Đoàn trực thuộc không được để trống";
+    } else if (!CHAPTER_AFFILIATED.includes(affiliatedValue)) {
+      newErrors.affiliated = "Đoàn trực thuộc không hợp lệ";
+    }
+
+    if (!formInstance.getFieldInForm("establishedAt")) {
+      newErrors.establishedAt = "Ngày thành lập không được để trống";
+    }
+
+    if (!formInstance.getFieldInForm("address")) {
+      newErrors.address = "Địa chỉ không được để trống";
+    }
+
+    setErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
   };
 
-  // Submit form
   const handleSubmit = async () => {
-    const fd = new FormData();
-    Object.keys(form).forEach((k) => fd.append(k, form[k]));
-    if (avatarFile) fd.append("avatar", avatarFile);
+    if (!validate()) return; // nếu không hợp lệ, dừng submit
 
-    setIsLoading(true);
+    setLoading(true);
+    setStatus({ type: "", message: "" });
     try {
-      const res = await onSubmit(fd);
-      console.log("🔹 Form submitted:", res);
+      const response = await createNewChapter(formInstance.form);
+
+      if (response.success) {
+        setStatus({ type: "success", message: "Tạo chi đoàn thành công!" });
+      } else {
+        setStatus({
+          type: "error",
+          message: response.message || "Có lỗi xảy ra",
+        });
+      }
     } catch (err) {
-      console.error("❌ Submit error:", err);
+      setStatus({ type: "error", message: err.message || "Có lỗi xảy ra" });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg border shadow-lg">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="font-semibold text-2xl">Thông tin chi đoàn</h2>
-        <button
-          onClick={handleSubmit}
-          disabled={isLoading}
-          className={`bg-blue-500 p-2 rounded-full text-white hover:bg-blue-600 flex items-center justify-center ${
-            isLoading ? "opacity-70 cursor-not-allowed" : ""
+    <div className="grid grid-cols-12 gap-x-6 gap-y-2 border-gray-200 border shadow-md rounded-md p-6 ">
+      <div className="col-span-12 font-medium text-xl">THÔNG TIN TÀI KHOẢN</div>
+
+      <CustomInput
+        className="col-span-12 md:col-span-3"
+        label="Tên đăng nhập"
+        name="username"
+        value={formInstance.getFieldInForm("username")}
+        onChange={handleChange}
+        error={errors.username}
+      />
+
+      <CustomInput
+        className="col-span-12 md:col-span-3"
+        label="Email"
+        name="email"
+        value={formInstance.getFieldInForm("email")}
+        onChange={handleChange}
+        error={errors.email}
+      />
+
+      <CustomInput
+        className="col-span-12 md:col-span-3"
+        label="Số điện thoại"
+        name="phoneNumber"
+        value={formInstance.getFieldInForm("phoneNumber")}
+        onChange={handleChange}
+        error={errors.phoneNumber}
+      />
+
+      <CustomPassword
+        className="col-span-12 md:col-span-3"
+        label="Mật khẩu"
+        name="password"
+        value={formInstance.getFieldInForm("password")}
+        onChange={handleChange}
+        error={errors.password}
+      />
+
+      <div className="col-span-12 font-medium text-xl mt-4">
+        THÔNG TIN CHI ĐOÀN
+      </div>
+
+      <CustomInput
+        className="col-span-12 md:col-span-5"
+        label="Tên chi đoàn"
+        name="name"
+        value={formInstance.getFieldInForm("name")}
+        onChange={handleChange}
+        error={errors.name}
+      />
+
+      <CustomInput
+        className="col-span-12 md:col-span-4"
+        label="Đoàn trực thuộc"
+        name="affiliated"
+        value={formInstance.getFieldInForm("affiliated")}
+        onChange={handleChange}
+        error={errors.affiliated}
+        list={"affiliatedList"}
+      />
+
+      <datalist id="affiliatedList">
+        {CHAPTER_AFFILIATED.map((item) => (
+          <option value={item} />
+        ))}
+      </datalist>
+
+      <CustomInput
+        className="col-span-12 md:col-span-3"
+        label="Ngày thành lập"
+        type="date"
+        name="establishedAt"
+        value={formInstance.getFieldInForm("establishedAt")}
+        onChange={handleChange}
+        error={errors.establishedAt}
+      />
+
+      <CustomInput
+        className="col-span-12"
+        label="Địa chỉ"
+        name="address"
+        value={formInstance.getFieldInForm("address")}
+        onChange={handleChange}
+        error={errors.address}
+      />
+
+      <button
+        onClick={handleSubmit}
+        disabled={loading}
+        className="text-sm font-medium col-span-12 mt-4 h-fit md:col-start-6 md:col-span-2 flex p-2 gap-2 bg-blue-600 items-center justify-center text-white rounded-md active:bg-blue-500 disabled:opacity-50"
+      >
+        {loading ? (
+          <Loader2 className="animate-spin w-5 h-5" />
+        ) : (
+          <PlusSquare />
+        )}
+        {loading ? "Đang tạo..." : "Tạo chi đoàn"}
+      </button>
+
+      {status.message && (
+        <div
+          className={`col-span-12 mt-2 flex items-center gap-2 p-2 rounded-md text-sm font-medium ${
+            status.type === "success"
+              ? "bg-green-50 text-green-700"
+              : "bg-red-50 text-red-700"
           }`}
         >
-          {isLoading ? (
-            <LoaderCircle className="animate-spin"/>
-          ) : (
-            <Plus />
-          )}
-        </button>
-      </div>
-
-      {/* Form Grid */}
-      <div className="grid grid-cols-12 gap-4">
-        {/* Avatar */}
-        <div className="col-span-12 md:col-span-2 md:row-span-2 flex justify-center">
-          <div className="relative">
-            <img
-              src={avatarPreview || defAvatar}
-              alt="Avatar"
-              className="w-36 h-36 rounded-full border object-cover"
-            />
-            <label
-              htmlFor="avatar-upload"
-              className="absolute bottom-0 right-0 bg-blue-700 p-2 rounded-full text-white cursor-pointer"
-            >
-              <Camera size={18} />
-            </label>
-            <input
-              id="avatar-upload"
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-              className="hidden"
-            />
-          </div>
+          {status.type === "success" ? <CheckCircle /> : <AlertCircle />}
+          {status.message}
         </div>
-
-        {/* Inputs */}
-        <CustomInput
-          label="Tên chi đoàn"
-          name="name"
-          className="col-span-12 md:col-span-4"
-          value={form.name || ""}
-          onChange={handleChange}
-        />
-        <CustomInput
-          label="Đoàn trực thuộc"
-          name="affiliated"
-          className="col-span-12 md:col-span-4"
-          value={form.affiliated || ""}
-          onChange={handleChange}
-        />
-        <CustomInput
-          label="Ngày thành lập"
-          name="establishedAt"
-          type="date"
-          className="col-span-12 md:col-span-2"
-          value={toDateInputValue(form.establishedAt)}
-          onChange={handleChange}
-        />
-        <CustomInput
-          label="Địa chỉ"
-          name="address"
-          className="col-span-12 md:col-span-10"
-          value={form.address || ""}
-          onChange={handleChange}
-        />
-        <CustomInput
-          label="Tên đăng nhập"
-          name="username"
-          className="col-span-12 md:col-span-3"
-          value={form.username || ""}
-          onChange={handleChange}
-        />
-        <CustomInput
-          label="Email"
-          name="email"
-          className="col-span-12 md:col-span-4"
-          value={form.email || ""}
-          onChange={handleChange}
-        />
-        <CustomInput
-          label="Số điện thoại"
-          name="phoneNumber"
-          className="col-span-12 md:col-span-2"
-          value={form.phoneNumber || ""}
-          onChange={handleChange}
-        />
-        <CustomInput
-          label="Mật khẩu"
-          name="password"
-          type={showPassword ? "text" : "password"}
-          className="col-span-12 md:col-span-3"
-          value={form.password || ""}
-          onChange={handleChange}
-          afterIcon={
-            showPassword ? (
-              <Eye onClick={() => setShowPassword(false)} className="cursor-pointer" />
-            ) : (
-              <EyeClosed onClick={() => setShowPassword(true)} className="cursor-pointer" />
-            )
-          }
-        />
-      </div>
+      )}
     </div>
   );
-}
+};
 
 export default ChapterCreateForm;

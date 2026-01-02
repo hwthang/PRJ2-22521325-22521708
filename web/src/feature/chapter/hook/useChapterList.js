@@ -1,85 +1,84 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import apiClient from "../../../utils/api";
 import { toast } from "react-toastify";
-import ChapterService from "../service/ChapterService";
+import { defAvatar } from "../../../core/assets/images";
+import { formatDate } from "../../../utils/date";
 
-function useChapterList() {
+const useChapterList = () => {
   const [chapters, setChapters] = useState([]);
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState(0); 
-  // 🔄 Cập nhật: 'filter' là MẢNG chứa các trạng thái được chọn (VD: ['active', 'pending'])
-  const [filter, setFilter] = useState([]); 
+  const [loading, setLoading] = useState(false);
 
-  // Hàm lấy dữ liệu thô từ API
-  const fetchChapters = async () => {
-    try {
-      const res = await ChapterService.getChapters();
-      // ... (Giữ nguyên logic xử lý lỗi) ...
-      if (typeof res === "string") {
-        toast.error(res);
-        setChapters([]);
-      } else {
-        setChapters(res || []);
-      }
-    } catch (error) {
-      toast.error("Có lỗi khi lấy danh sách chi đoàn");
-      setChapters([]);
-    }
+  // pagination state
+  const [page, setPage] = useState(1);
+  const limit = 3; // số item mỗi trang
+
+  const fetchChapterList = async () => {
+    setLoading(true);
+    const { success, message, data } = await apiClient.get("/api/chapters");
+    setLoading(false);
+
+    if (success) {
+      setChapters(
+        data.chapters.map((item) => ({
+          id: item._id,
+          accountId: item.accountId._id,
+          avatar: item.accountId.avatar?.path || defAvatar,
+          username: item.accountId.username,
+          email: item.accountId.email,
+          phoneNumber: item.accountId.phoneNumber,
+          name: item.name || "Chưa có",
+          affiliated: item.affiliated || "Chưa có",
+          establishedAt: formatDate(item.establishedAt) || "Chưa có",
+          address: item.address || "Chưa có",
+          password: item.accountId.password || "Chưa có",
+        }))
+      );
+    } else toast.error(message);
   };
 
   useEffect(() => {
-    fetchChapters();
-  }, []);
+    fetchChapterList();
+    console.log(chapters);
+  }, [chapters.length]);
 
-  // --- LOGIC LỌC VÀ SẮP XẾP SỬ DỤNG useMemo ---
-  const filteredAndSortedChapters = useMemo(() => {
-    let result = [...chapters];
+  // FILTER
+  const filtered = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    if (!keyword) return chapters;
 
-    // 1. LỌC THEO TÌM KIẾM (SEARCH FILTERING)
-    if (search) {
-      const normalizedSearch = search.toLowerCase().trim();
-      result = result.filter((chapter) => {
-        return (
-          chapter.name.toLowerCase().includes(normalizedSearch) ||
-          chapter.affiliated.toLowerCase().includes(normalizedSearch)
-        );
-      });
-    }
+    return chapters.filter((c) => {
+      return (
+        c.name.toLowerCase().includes(keyword) ||
+        c.affiliated.toLowerCase().includes(keyword) ||
+        c.address.toLowerCase().includes(keyword)
+      );
+    });
+  }, [chapters, search]);
 
-    // 2. 🎯 LỌC THEO TRẠNG THÁI (STATUS FILTERING - SỬ DỤNG MẢNG)
-    if (filter && filter.length > 0) {
-      // Chỉ giữ lại các chi đoàn có status nằm trong mảng 'filter'
-      result = result.filter((chapter) => filter.includes(chapter.status));
-    }
-    
-    // 3. SẮP XẾP (SORTING)
-    if (result.length > 0) {
-      result.sort((a, b) => {
-        // ... (Giữ nguyên logic sắp xếp theo ISO 8601 hoặc tên) ...
-        switch (Number(sort)) {
-          case 0: 
-            return a.establishedAt.localeCompare(b.establishedAt);
-          case 1: 
-            return b.establishedAt.localeCompare(a.establishedAt);
-          case 2: 
-            return a.name.localeCompare(b.name);
-          default:
-            return 0;
-        }
-      });
-    }
+  // PAGINATION
+  const totalPage = Math.ceil(filtered.length / limit);
 
-    return result;
-  }, [chapters, search, sort, filter]); // THAY ĐỔI: Phụ thuộc vào mảng 'filter'
+  const pagedData = useMemo(() => {
+    const start = (page - 1) * limit;
+    return filtered.slice(start, start + limit);
+  }, [filtered, page]);
+
+  // reset page khi search
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   return {
-    chapters: filteredAndSortedChapters,
+    chapters: pagedData,
+    rawChapters: chapters,
     search,
     setSearch,
-    sort,
-    setSort,
-    filter, 
-    setFilter, 
+    loading,
+    page,
+    setPage,
+    totalPage,
   };
-}
+};
 
 export default useChapterList;
