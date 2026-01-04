@@ -7,12 +7,9 @@ export const normalizeSurvey = (survey) => {
     metadata: {
       _id: survey._id,
       name: survey.name || "",
-      startedAt: survey.startedAt
-        ? survey.startedAt.slice(0, 10)
-        : "",
-      endedAt: survey.endedAt
-        ? survey.endedAt.slice(0, 10)
-        : "",
+      startedAt: survey.startedAt,
+
+      endedAt: survey.endedAt,
     },
     questions,
   };

@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { 
-  ChevronRight, ChevronLeft, Send, 
-  ClipboardList, CheckCircle, Loader2 
+import {
+  ChevronRight,
+  ChevronLeft,
+  Send,
+  ClipboardList,
+  CheckCircle,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify"; 
+import { toast } from "react-toastify";
 import { base_url } from "../../../utils/api";
 
 const TakeSurveyPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   // States
   const [surveyInfo, setSurveyInfo] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -30,34 +35,30 @@ const TakeSurveyPage = () => {
 
         if (json.success && json.data.survey) {
           const rawSurvey = json.data.survey;
-          
           setSurveyInfo({
             name: rawSurvey.name,
-            chapter: rawSurvey.chapterId?.name
+            chapter: rawSurvey.chapterId?.name,
           });
 
           const normalizedQuestions = Object.keys(rawSurvey)
             .filter((key) => !isNaN(key))
             .map((key) => rawSurvey[key]);
-          
+
           setQuestions(normalizedQuestions);
         }
       } catch (err) {
-        console.error(err);
         toast.error("Không thể tải dữ liệu khảo sát");
       } finally {
         setLoading(false);
       }
     };
-
     fetchSurveyData();
   }, [id]);
 
-  // 2. Logic cập nhật câu trả lời (Lưu Index thay vì Value)
+  // 2. Logic cập nhật câu trả lời
   const handleAnswerChange = (questionId, value, type) => {
     setAnswers((prev) => {
-      const indexStr = value.toString(); // Chuyển index sang string
-
+      const indexStr = value.toString();
       if (type === "multiple") {
         const currentArr = prev[questionId]?.options || [];
         const newArr = currentArr.includes(indexStr)
@@ -65,42 +66,54 @@ const TakeSurveyPage = () => {
           : [...currentArr, indexStr];
         return { ...prev, [questionId]: { options: newArr, text: "" } };
       }
-      
       if (type === "single") {
         return { ...prev, [questionId]: { options: [indexStr], text: "" } };
       }
-
-      // Đối với text, value chính là nội dung chữ
-      return { ...prev, [questionId]: { text: value, options: [""] } };
+      return { ...prev, [questionId]: { text: value, options: [] } };
     });
   };
 
-  // 3. Submit logic
+  // 3. KIỂM TRA CÂU HỎI HIỆN TẠI ĐÃ TRẢ LỜI CHƯA
+  const isCurrentQuestionAnswered = () => {
+    const currentQ = questions[currentIndex];
+    if (!currentQ) return false;
+
+    const ans = answers[currentQ._id];
+    if (!ans) return false;
+
+    if (currentQ.type === "text") {
+      return ans.text && ans.text.trim().length > 0;
+    }
+    
+    // Đối với single/multiple: mảng options phải có phần tử
+    return ans.options && ans.options.length > 0;
+  };
+
+  // 4. Submit logic
   const submitAllAnswers = async () => {
+    if (!isCurrentQuestionAnswered()) {
+        return toast.warning("Vui lòng hoàn thành câu hỏi cuối cùng");
+    }
+
     setSubmitting(true);
     try {
-      const accountStr = await localStorage.getItem("my_account");
+      const accountStr = localStorage.getItem("my_account");
       const account = JSON.parse(accountStr);
       const memberId = account?.member?._id;
 
-      if (!memberId) {
-        toast.error("Vui lòng đăng nhập lại để nộp khảo sát");
-        return;
-      }
+      if (!memberId) return toast.error("Vui lòng đăng nhập lại");
 
       const apiCalls = questions.map((q) => {
-        const ans = answers[q._id] || { text: "", options: [""] };
-        const body = {
-          questionId: q._id,
-          memberId: memberId,
-          text: ans.text || "",
-          options: ans.options.length > 0 ? ans.options : [""],
-        };
-
+        const ans = answers[q._id];
         return fetch(`${base_url}/api/answers`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify({
+            questionId: q._id,
+            memberId: memberId,
+            text: ans.text || "",
+            options: ans.options || [""],
+          }),
         });
       });
 
@@ -108,37 +121,25 @@ const TakeSurveyPage = () => {
       setIsFinished(true);
       toast.success("Nộp khảo sát thành công!");
     } catch (error) {
-      console.error(error);
       toast.error("Có lỗi khi gửi khảo sát!");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#f8faff] flex flex-col items-center justify-center gap-4">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
-        <p className="text-slate-500 font-bold">Đang tải câu hỏi...</p>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-[#f8faff] flex flex-col items-center justify-center gap-4">
+      <Loader2 className="animate-spin text-blue-600" size={40} />
+      <p className="text-slate-500 font-bold">Đang tải câu hỏi...</p>
+    </div>
+  );
 
-  if (isFinished) return <SuccessState navigate={navigate} />;
-
-  if (questions.length === 0) {
-    return (
-      <div className="min-h-screen bg-[#f8faff] flex items-center justify-center p-6">
-         <div className="text-center bg-white p-10 rounded-[2rem] shadow-sm">
-            <p className="text-slate-400 font-bold">Không tìm thấy nội dung khảo sát.</p>
-            <button onClick={() => navigate(-1)} className="mt-4 text-blue-600 font-black uppercase text-sm tracking-widest">Quay lại</button>
-         </div>
-      </div>
-    );
-  }
+  if (isFinished) return <SuccessState navigate={navigate} id={id} />;
+  if (questions.length === 0) return null;
 
   const currentQuestion = questions[currentIndex];
   const progress = ((currentIndex + 1) / questions.length) * 100;
+  const canGoNext = isCurrentQuestionAnswered(); // Biến kiểm tra để active nút
 
   return (
     <div className="min-h-screen bg-[#f8faff] p-6 flex items-center justify-center font-sans">
@@ -162,9 +163,12 @@ const TakeSurveyPage = () => {
                 {surveyInfo?.name}
               </h1>
             </div>
-            <div className="bg-slate-50 p-3 rounded-2xl text-slate-300">
-                <ClipboardList size={20} />
-            </div>
+            {/* Nhãn bắt đầu nhắc nhở nếu chưa chọn */}
+            {!canGoNext && (
+                <div className="flex items-center gap-1 text-[10px] font-bold text-amber-500 bg-amber-50 px-3 py-1 rounded-full animate-pulse">
+                   <AlertCircle size={12} /> Bắt buộc
+                </div>
+            )}
           </header>
 
           <main className="min-h-[280px]">
@@ -173,7 +177,6 @@ const TakeSurveyPage = () => {
             </h2>
 
             <div className="space-y-3">
-              {/* Câu hỏi TEXT */}
               {currentQuestion.type === "text" && (
                 <textarea
                   className="w-full p-6 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-[2rem] outline-none transition-all font-medium text-slate-700 min-h-[150px] shadow-inner"
@@ -183,11 +186,9 @@ const TakeSurveyPage = () => {
                 />
               )}
 
-              {/* Câu hỏi SINGLE/MULTIPLE */}
               {(currentQuestion.type === "single" || currentQuestion.type === "multiple") && (
                 <div className="grid gap-3">
                   {currentQuestion.options.map((option, idx) => {
-                    // Kiểm tra dựa trên index (string)
                     const isSelected = answers[currentQuestion._id]?.options?.includes(idx.toString());
                     return (
                       <button
@@ -203,7 +204,7 @@ const TakeSurveyPage = () => {
                         <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                             isSelected ? "border-blue-500 bg-blue-500 text-white" : "border-slate-200 bg-white"
                         }`}>
-                            {isSelected && <CheckCircle size={14} />}
+                          {isSelected && <CheckCircle size={14} />}
                         </div>
                       </button>
                     );
@@ -225,16 +226,25 @@ const TakeSurveyPage = () => {
 
             {currentIndex < questions.length - 1 ? (
               <button
+                disabled={!canGoNext} // KHÓA NẾU CHƯA TRẢ LỜI
                 onClick={() => setCurrentIndex(currentIndex + 1)}
-                className="flex-1 p-5 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 flex items-center justify-center gap-2 hover:bg-blue-700 transition-all active:scale-[0.98]"
+                className={`flex-1 p-5 rounded-2xl font-black flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                    canGoNext 
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700" 
+                    : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                }`}
               >
                 Tiếp tục <ChevronRight size={24} />
               </button>
             ) : (
               <button
-                disabled={submitting}
+                disabled={submitting || !canGoNext} // KHÓA NẾU CHƯA TRẢ LỜI
                 onClick={submitAllAnswers}
-                className="flex-1 p-5 bg-slate-900 text-white rounded-2xl font-black shadow-lg flex items-center justify-center gap-2 hover:bg-black transition-all disabled:opacity-50 active:scale-[0.98]"
+                className={`flex-1 p-5 rounded-2xl font-black shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                    canGoNext 
+                    ? "bg-slate-900 text-white hover:bg-black shadow-slate-200" 
+                    : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                }`}
               >
                 {submitting ? (
                   <Loader2 className="animate-spin" size={20} />
@@ -250,7 +260,7 @@ const TakeSurveyPage = () => {
   );
 };
 
-const SuccessState = ({ navigate }) => (
+const SuccessState = ({ navigate, id }) => (
   <div className="min-h-screen bg-[#f8faff] p-6 flex items-center justify-center text-center font-sans">
     <div className="max-w-md w-full animate-in fade-in zoom-in duration-500">
       <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-emerald-100/50">
@@ -261,10 +271,10 @@ const SuccessState = ({ navigate }) => (
         Ý kiến của bạn đóng vai trò rất quan trọng trong việc xây dựng cộng đồng Đoàn vững mạnh.
       </p>
       <button
-        onClick={() => navigate("/app/member/dashboard")}
+        onClick={() => navigate(`/app/member/surveys/results/${id}`)}
         className="w-full p-5 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
       >
-        Về Trang Chủ
+        Xem kết quả
       </button>
     </div>
   </div>

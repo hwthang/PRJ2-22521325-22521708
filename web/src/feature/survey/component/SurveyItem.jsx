@@ -4,6 +4,7 @@ import React from "react";
 import { Link } from "react-router-dom"; // Thêm import Link
 import { surveyStatuses } from "../page/SurveyListPage"; // Đảm bảo import đúng
 import { CustomLabel } from "../../component/custom/CustomLabel";
+import { formatForDatetimeLocal, formatVietnamDatetimeAMPM } from "../../../utils/date";
 
 // Bỏ onEdit vì không còn dùng
 export const SurveyItem = ({ data }) => { 
@@ -29,13 +30,13 @@ export const SurveyItem = ({ data }) => {
                 {/* BẮT ĐẦU (col-span-2) */}
                 <div className="flex flex-col gap-1 md:col-span-2 border-l-2 pl-2 md:pl-0 md:border-none">
                     <span className="font-medium text-gray-500 text-xs md:hidden">BẮT ĐẦU</span>
-                    <span className="md:text-center text-sm">{formatTime(data.startedAt)}</span>
+                    <span className="md:text-center text-sm">{formatVietnamDatetimeAMPM(data.startedAt)}</span>
                 </div>
 
                 {/* KẾT THÚC (col-span-2) */}
                 <div className="flex flex-col gap-1 md:col-span-2 border-l-2 pl-2 md:pl-0 md:border-none">
                     <span className="font-medium text-gray-500 text-xs md:hidden">KẾT THÚC</span>
-                    <span className="md:text-center text-sm">{formatTime(data.endedAt)}</span>
+                    <span className="md:text-center text-sm">{formatVietnamDatetimeAMPM(data.endedAt)}</span>
                 </div>
 
                 {/* TRẠNG THÁI (col-span-2) */}

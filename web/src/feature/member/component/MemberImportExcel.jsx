@@ -56,7 +56,7 @@ const MemberImportExcel = () => {
           fullName: row["Họ và tên"] || "",
           gender: row["Giới tính"] || "",
           dateOfBirth: row["Ngày sinh"] || "",
-          placeOfBirth: row["Quê quán"] || "",
+          hometown: row["Quê quán"] || "",
           address: row["Địa chỉ"] || "",
           ethnicity: row["Dân tộc"] || "",
           religion: row["Tôn giáo"] || "",

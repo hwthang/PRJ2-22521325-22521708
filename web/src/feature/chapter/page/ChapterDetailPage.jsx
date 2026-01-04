@@ -18,8 +18,9 @@ const ChapterDetailPage = () => {
       setRawChapter({
         id: data?.chapter?._id,
         accountId: data?.chapter?.accountId?._id,
-        avatar: data?.chapter?.accountId?.avatar?.path,
+        avatar: data?.chapter?.accountId?.avatar?.url,
         username: data?.chapter?.accountId?.username || "",
+        isActive: data?.chapter?.accountId?.isActive,
         email: data?.chapter?.accountId?.email || "",
         phoneNumber: data?.chapter?.accountId?.phoneNumber || "",
         name: data?.chapter?.name || "",
@@ -34,7 +35,10 @@ const ChapterDetailPage = () => {
   }, [id]);
   return (
     <div className="p-6 flex flex-col gap-6">
-      <Link to={-1} className="active:bg-gray-100 h-10 w-10 rounded-full flex items-center justify-center">
+      <Link
+        to={-1}
+        className="active:bg-gray-100 h-10 w-10 rounded-full flex items-center justify-center"
+      >
         <ChevronLeft />
       </Link>
       <ChapterDetailForm data={rawChapter} />

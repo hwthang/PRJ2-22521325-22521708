@@ -9,6 +9,7 @@ import { EventItem } from "../component/EventItem";
 import Paging from "../../component/paging/Paging";
 import apiClient from "../../../utils/api";
 import customCache from "../../../utils/customCache";
+import { CheckOptionDropdown } from "../../../core/components/CheckOptionDropdown";
 
 export const mockup_events = [
   {
@@ -232,7 +233,7 @@ const EventListPage = () => {
 
         {/* Chủ đề */}
         <CustomSection className="col-span-12" label="Chủ đề sự kiện">
-          <CheckOption
+          <CheckOptionDropdown
             options={eventTopics}
             value={selectedTopics}
             onChange={(v) => {

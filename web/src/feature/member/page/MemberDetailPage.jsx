@@ -20,9 +20,10 @@ const MemberDetailPage = () => {
       setRawMember({
         id: m?._id,
         accountId: m?.accountId?._id,
-        avatar: m?.accountId?.avatar?.path || "",
+        avatar: m?.accountId?.avatar?.url || "",
         username: m?.accountId?.username || "",
         email: m?.accountId?.email || "",
+        isActive: m?.accountId?.  isActive,
         phoneNumber: m?.accountId?.phoneNumber || "",
         fullName: m?.fullName || "",
         gender: m?.gender || "",

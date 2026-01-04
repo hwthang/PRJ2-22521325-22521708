@@ -10,6 +10,7 @@ import customCache from "../../../utils/customCache";
 import { CustomLabel } from "../../component/custom/CustomLabel";
 import { DocumentItem } from "../component/DocumentItem";
 import EditDocumentModal from "../component/EditDocumentModal";
+import { CheckOptionDropdown } from "../../../core/components/CheckOptionDropdown";
 
 export const documentTypes = {
   baoCao: { label: "Báo cáo", icon: "FileChartColumn", color: "blue" },
@@ -118,7 +119,7 @@ const DocumentListPage = () => {
         )}
 
         <CustomSection className="col-span-12" label="Loại tài liệu">
-          <CheckOption
+          <CheckOptionDropdown
             options={documentTypes}
             multiple
             value={filters.selectedTypes}
@@ -166,22 +167,29 @@ const DocumentListPage = () => {
         ))}
 
       {/* MODAL */}
-      <CreateDocumentModal
-        open={openModal}
-        onClose={() => setOpenModal(false)}
-        onSubmit={async (data) => {
-          const res = await apiClient.post("/api/documents", {
-            ...data,
-            type: data.type[0],
-            chapterId: customCache.myAccount.get().chapter._id,
-          });
+     <CreateDocumentModal
+  open={openModal}
+  onClose={() => setOpenModal(false)}
+  onSubmit={async (data) => {
+    try {
+      const res = await apiClient.post("/api/documents", {
+        ...data,
+        type: data.type[0],
+        chapterId: customCache.myAccount.get().chapter._id,
+      });
 
-          if (res.success) {
-            setOpenModal(false);
-            fetchDocuments();
-          }
-        }}
-      />
+      if (res.success) {
+        fetchDocuments();
+        return { success: true };
+      } else {
+        // Trả về lỗi từ server (ví dụ: "Số hiệu văn bản đã tồn tại")
+        return { success: false, message: res.message || "Có lỗi xảy ra" };
+      }
+    } catch (err) {
+      return { success: false, message: "Lỗi kết nối server!" };
+    }
+  }}
+/>
       <EditDocumentModal
         open={!!editDoc}
         document={editDoc}

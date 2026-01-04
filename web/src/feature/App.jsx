@@ -32,6 +32,9 @@ import TakeSurveyPage from "./survey/page/TakeSurveyPage";
 import { RegistrationPage } from "./registration/page/RegistrationPage";
 import SurveyDetailResultPage from "./survey/page/SurveyDetailResultPage";
 import ChatPage from "./chat/page/ChatPage";
+import VideoCallPage from "./video-call/VideoCallPage";
+import IncomingCallPage from "./video-call/IncomingCallPage";
+import { WaitingCallPage } from "./video-call/WaitingCallPage";
 
 function App() {
   // 🔹 AUTO CONNECT SOCKET nếu có accountId
@@ -78,9 +81,18 @@ function App() {
       });
     };
 
+    const handleIncomingCall = (payload) => {
+      console.log("📩 INCOMING_CALL:", payload);
+
+      const myAccount = localStorage.getItem("my_account");
+      const type = JSON.parse(myAccount).type;
+      navigate(`/app/${type}/incoming-call?from=${payload.from}`);
+    };
     socket.on("welcome", handleWelcome);
     socket.on("new_event_for_member", handleNewEventForMember);
     socket.on("new_message", handleNewMessage);
+
+    socket.on("call:incoming", handleIncomingCall);
 
     return () => {
       socket.off("welcome", handleWelcome);
@@ -128,6 +140,9 @@ function App() {
             <Route path="surveys/create" element={<CreateSurveyPage />} />
             <Route path="surveys/:id" element={<SurveyDetailPage />} />
             <Route path="chat" element={<ChatPage />} />
+            <Route path="incoming-call" element={<IncomingCallPage />} />
+             <Route path="waiting-call" element={<WaitingCallPage />} />
+            <Route path="video-call" element={<VideoCallPage />} />
           </Route>
 
           <Route path="member">
@@ -142,6 +157,9 @@ function App() {
               element={<SurveyDetailResultPage />}
             />
             <Route path="chat" element={<ChatPage />} />
+            <Route path="video-call" element={<VideoCallPage />} />
+             <Route path="waiting-call" element={<WaitingCallPage />} />
+            <Route path="incoming-call" element={<IncomingCallPage />} />
           </Route>
 
           <Route path="events/:id" element={<EventDetailPage />} />

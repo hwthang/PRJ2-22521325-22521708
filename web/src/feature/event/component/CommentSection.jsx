@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Send,
   ImageIcon,
@@ -17,14 +17,19 @@ import EventService from "../service/EventService";
 import { onUpload } from "../../../utils/cloudinary.js";
 import { formatRelativeTime } from "../../../utils/date.js";
 import { base_url } from "../../../utils/api.js";
+import { defAvatar } from "../../../core/assets/images/index.js";
 
 const CommentSection = ({ postId, initialComments = [] }) => {
   // --- States ---
   const [comments, setComments] = useState(initialComments);
   const [commentText, setCommentText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+
+  // Xử lý ảnh
+  const [selectedImage, setSelectedImage] = useState(null); // File mới chọn từ máy
+  const [imagePreview, setImagePreview] = useState(null); // URL để hiển thị (blob hoặc cdn)
+  const [editingImage, setEditingImage] = useState(null); // Lưu object image gốc khi edit {url, publicId}
+
   const [activeMenu, setActiveMenu] = useState(null);
   const [myAccountId, setMyAccountId] = useState(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
@@ -50,7 +55,6 @@ const CommentSection = ({ postId, initialComments = [] }) => {
     fetchComments();
   }, [postId]);
 
-  // Click outside to close menus
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target))
@@ -80,6 +84,8 @@ const CommentSection = ({ postId, initialComments = [] }) => {
     const file = e.target.files[0];
     if (file && file.type.startsWith("image/")) {
       setSelectedImage(file);
+      // Xóa ảnh cũ đang edit nếu người dùng chọn file mới
+      setEditingImage(null);
       setImagePreview(URL.createObjectURL(file));
     } else {
       toast.error("Vui lòng chọn tệp ảnh hợp lệ");
@@ -90,63 +96,68 @@ const CommentSection = ({ postId, initialComments = [] }) => {
     setCommentText("");
     setEditingCommentId(null);
     setSelectedImage(null);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setEditingImage(null);
+    if (imagePreview && imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
+    }
     setImagePreview(null);
     setShowEmojiPicker(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
   const checkBeforeSubmit = async (payload) => {
     try {
       const res = await fetch(`${base_url}/check-content`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-     const json = await res.json()
-      return json;
+      return await res.json();
     } catch (err) {
-      toast.error("Không thể kiểm duyệt nội dung lúc này");
-      return { success: false };
+      console.error("Moderation error:", err);
+      return { success: false, message: "Lỗi kết nối kiểm duyệt" };
     }
   };
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    if (!commentText.trim() && !selectedImage) return;
+
+    // Kiểm tra rỗng: Không text, không ảnh mới, không ảnh cũ
+    if (!commentText.trim() && !selectedImage && !editingImage) return;
 
     setIsSubmitting(true);
 
     try {
-      // 1️⃣ Chuẩn bị payload kiểm duyệt (CHƯA upload ảnh)
+      // 2️⃣ Xử lý ảnh Cloudinary
+      let finalImageObj = editingImage; // Mặc định giữ ảnh cũ (nếu có)
+
+      if (selectedImage) {
+        // Chỉ upload nếu có file mới được chọn
+        finalImageObj = await onUpload(selectedImage);
+      }
+      // 1️⃣ Kiểm duyệt nội dung
       const moderationPayload = {
         content: commentText,
-        image: selectedImage ? "image_attached" : null,
+        // Gửi URL ảnh cũ hoặc đánh dấu có ảnh mới để BE biết đường check
+        image: finalImageObj || null,
+        type: "comment",
       };
 
-      // 2️⃣ GỌI API KIỂM DUYỆT
       const moderationRes = await checkBeforeSubmit(moderationPayload);
-
       if (!moderationRes?.success) {
-        toast.error(moderationRes?.message || "Nội dung không hợp lệ");
+        toast.error(
+          moderationRes?.message || "Nội dung vi phạm quy tắc cộng đồng"
+        );
         setIsSubmitting(false);
-        return; // ❌ DỪNG TẠI ĐÂY
+        return;
       }
 
-      // 3️⃣ SAU KHI HỢP LỆ → upload ảnh
-      let uploadedImage = null;
-      if (selectedImage) {
-        uploadedImage = await onUpload(selectedImage);
-      }
-
-      // 4️⃣ Tạo payload comment thật
+      // 3️⃣ Gửi dữ liệu về Backend của bạn
       const payload = {
         comment: commentText,
-        image: uploadedImage,
+        image: finalImageObj, // Object chứa {url, publicId...} hoặc null
       };
 
-      // 5️⃣ Create / Update comment
       if (editingCommentId) {
         await EventService.updateComment(editingCommentId, payload);
         toast.success("Cập nhật thành công");
@@ -158,6 +169,7 @@ const CommentSection = ({ postId, initialComments = [] }) => {
       clearForm();
       fetchComments();
     } catch (err) {
+      console.error("Submit error:", err);
       toast.error("Có lỗi xảy ra, vui lòng thử lại");
     } finally {
       setIsSubmitting(false);
@@ -182,7 +194,6 @@ const CommentSection = ({ postId, initialComments = [] }) => {
     }
   };
 
-  // --- Render Helpers ---
   const onEmojiClick = (emojiData) => {
     setCommentText((prev) => prev + emojiData.emoji);
     textareaRef.current?.focus();
@@ -210,7 +221,6 @@ const CommentSection = ({ postId, initialComments = [] }) => {
               className="w-full min-h-[120px] bg-slate-50 rounded-2xl p-5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:bg-white border-2 border-transparent focus:border-blue-100 transition-all resize-none shadow-inner"
             />
 
-            {/* Emoji & Image Toggle */}
             <div className="absolute right-4 bottom-4 flex items-center gap-2">
               <div className="relative" ref={emojiRef}>
                 <button
@@ -246,7 +256,7 @@ const CommentSection = ({ postId, initialComments = [] }) => {
             </div>
           </div>
 
-          {/* Preview Image */}
+          {/* Preview Image (Xử lý cả ảnh mới chọn và ảnh cũ đang edit) */}
           {imagePreview && (
             <div className="relative inline-block group/preview">
               <div className="w-24 h-24 rounded-2xl overflow-hidden border-4 border-white shadow-lg">
@@ -260,7 +270,9 @@ const CommentSection = ({ postId, initialComments = [] }) => {
                 type="button"
                 onClick={() => {
                   setSelectedImage(null);
+                  setEditingImage(null); // Xóa cả ảnh cũ nếu người dùng nhấn X
                   setImagePreview(null);
+                  if (fileInputRef.current) fileInputRef.current.value = "";
                 }}
                 className="absolute -top-2 -right-2 bg-rose-500 text-white p-1.5 rounded-full shadow-lg hover:scale-110 transition-transform"
               >
@@ -270,9 +282,7 @@ const CommentSection = ({ postId, initialComments = [] }) => {
           )}
 
           <div className="flex items-center justify-between pt-2 border-t border-slate-50">
-            <p className="text-[11px] text-slate-400 font-medium italic">
-              Quy tắc: Không dùng ngôn từ gây thù ghét.
-            </p>
+           
             <div className="flex items-center gap-3">
               {editingCommentId && (
                 <button
@@ -286,7 +296,8 @@ const CommentSection = ({ postId, initialComments = [] }) => {
               <button
                 type="submit"
                 disabled={
-                  isSubmitting || (!commentText.trim() && !selectedImage)
+                  isSubmitting ||
+                  (!commentText.trim() && !selectedImage && !editingImage)
                 }
                 className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-8 py-2.5 rounded-xl flex items-center gap-2 font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-200 active:scale-95 transition-all"
               >
@@ -330,12 +341,11 @@ const CommentSection = ({ postId, initialComments = [] }) => {
                 key={item._id}
                 className="group relative flex gap-4 animate-in slide-in-from-left-4 duration-500"
               >
-                {/* Avatar Area */}
                 <div className="flex-shrink-0">
                   <div className="w-12 h-12 rounded-2xl bg-slate-200 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center">
                     {item.accountId?.avatar ? (
                       <img
-                        src={item.accountId.avatar}
+                        src={item.accountId.avatar.url || defAvatar}
                         className="w-full h-full object-cover"
                         alt="avatar"
                       />
@@ -345,7 +355,6 @@ const CommentSection = ({ postId, initialComments = [] }) => {
                   </div>
                 </div>
 
-                {/* Content Area */}
                 <div className="flex-1">
                   <div className="bg-white p-5 rounded-3xl rounded-tl-none border border-slate-100 shadow-sm group-hover:shadow-md group-hover:border-blue-100 transition-all">
                     <div className="flex justify-between items-start mb-2">
@@ -363,7 +372,6 @@ const CommentSection = ({ postId, initialComments = [] }) => {
                         </span>
                       </div>
 
-                      {/* Dropdown Menu */}
                       <div
                         className="relative"
                         ref={activeMenu === item._id ? menuRef : null}
@@ -386,7 +394,11 @@ const CommentSection = ({ postId, initialComments = [] }) => {
                                   onClick={() => {
                                     setEditingCommentId(item._id);
                                     setCommentText(item.comment);
+                                    // Set dữ liệu cũ để khi submit không cần upload lại
+                                    setEditingImage(item.image);
+                                    setImagePreview(item.image?.url || null);
                                     setActiveMenu(null);
+                                    textareaRef.current?.focus();
                                   }}
                                   className="w-full px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2"
                                 >

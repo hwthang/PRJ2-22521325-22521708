@@ -6,36 +6,56 @@ import DragDropUpload from "../../../component/DragDropUpload";
 import useForm from "../../../../core/hooks/useForm";
 import apiClient from "../../../../utils/api";
 import { toast } from "react-toastify";
+import { onUpload } from "../../../../utils/cloudinary";
 
 const EvaluationCreateForm = ({ memberId, onSuccess }) => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const formInstance = useForm({ type: "reward", title: "", description: "" });
 
-  const handleSubmit = async () => {
-    if (!formInstance.form.title || !formInstance.form.description) {
-      return toast.warning("Vui lòng nhập đầy đủ thông tin");
-    }
+const handleSubmit = async () => {
+  // 1. Validate cơ bản
+  if (!formInstance.form.title || !formInstance.form.description) {
+    return toast.warning("Vui lòng nhập đầy đủ thông tin");
+  }
 
-    setLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append("memberId", memberId);
-      formData.append("type", formInstance.form.type);
-      formData.append("title", formInstance.form.title);
-      formData.append("description", formInstance.form.description);
-      selectedFiles.forEach(file => formData.append("attachments", file));
+  setLoading(true);
+  try {
+    // 2. Upload toàn bộ file lên Cloudinary trước
+    // Chúng ta duyệt qua selectedFiles và gọi helper onUpload cho từng file
+    const uploadPromises = selectedFiles.map((file) => {
+      // Xác định resourceType dựa trên loại file (image, video, hoặc raw cho docs)
+      const resourceType = file.type.startsWith("image/") ? "image" : "raw";
+      return onUpload(file, resourceType);
+    });
 
-      await apiClient.post("/api/evaluations", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      onSuccess();
-    } catch (error) {
-      toast.error("Lỗi hệ thống, vui lòng thử lại");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const uploadedAssets = await Promise.all(uploadPromises);
+
+    // 3. Tạo Payload dạng JSON Object (Không dùng FormData nữa)
+    const payload = {
+      memberId: memberId,
+      type: formInstance.form.type,
+      title: formInstance.form.title,
+      description: formInstance.form.description,
+      attachments: uploadedAssets, // Đây là mảng các object { publicId, url, ... }
+    };
+
+    // LOG ĐỂ KIỂM TRA PAYLOAD TRƯỚC KHI GỬI BE
+    console.log("Final JSON Payload:", payload);
+
+    // 4. Gửi về Backend API
+    await apiClient.post("/api/evaluations", payload); 
+    // Mặc định axios/apiClient sẽ gửi là application/json nếu body là object
+
+    toast.success("Hồ sơ đã được lưu thành công!");
+    onSuccess();
+  } catch (error) {
+    console.error("Lỗi quá trình xử lý:", error);
+    toast.error(error.message || "Lỗi hệ thống, vui lòng thử lại");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 p-8">

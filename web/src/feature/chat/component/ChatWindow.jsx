@@ -15,6 +15,9 @@ import {
 import EmojiPicker from "emoji-picker-react";
 import DefaultAvatar from "../../../core/assets/images/avatar.png";
 import ChatDetailSidebar from "./ChatDetailSidebar";
+import { Link, useNavigate } from "react-router-dom";
+import { base_url } from "../../../utils/api";
+import { defAvatar } from "../../../core/assets/images";
 
 const ChatWindow = ({
   chatData,
@@ -34,8 +37,10 @@ const ChatWindow = ({
 
   const scrollRef = useRef(null);
   const emojiRef = useRef(null);
+  const navigate = useNavigate();
 
   const myAccountRaw = localStorage.getItem("my_account");
+  const role = JSON.parse(myAccountRaw).type;
   const isAdmin = myAccountRaw
     ? JSON.parse(myAccountRaw).type === "chapter"
     : false;
@@ -52,6 +57,25 @@ const ChatWindow = ({
     onSendMessage(message);
     setMessage("");
     setShowEmoji(false);
+  };
+
+  const handleVideoCall = async () => {
+    console.log(myAccountId);
+    const toId = chatData.members.filter((item) => item._id != myAccountId)[0]
+      ._id;
+    console.log(toId);
+    fetch(`${base_url}/api/calls/request`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: myAccountId,
+        to: toId,
+        callId: chatData._id,
+      }),
+    });
+    navigate(`/app/${role}/waiting-call?to=${toId}`);
   };
 
   const otherMember = chatData.members?.find(
@@ -103,7 +127,11 @@ const ChatWindow = ({
               onClick={() => setShowDetails(true)}
             >
               <img
-                src={otherMember?.avatar || DefaultAvatar}
+                src={
+                  chatData?.members?.length > 2
+                    ? defAvatar
+                    : otherMember?.avatar?.url || defAvatar
+                }
                 className="w-full h-full object-cover"
                 alt="Avatar"
               />
@@ -121,12 +149,15 @@ const ChatWindow = ({
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <button className="p-2.5 text-slate-400 hover:text-blue-600">
-              <Phone size={19} />
-            </button>
-            <button className="p-2.5 text-slate-400 hover:text-blue-600">
-              <Video size={19} />
-            </button>
+            {!chatData.name && (
+              <button
+                onClick={handleVideoCall}
+                className="p-2.5 text-slate-400 hover:text-blue-600"
+              >
+                <Video size={19} />
+              </button>
+            )}
+
             <button
               onClick={() => setShowDetails(!showDetails)}
               className={`p-2.5 rounded-full ${
@@ -150,84 +181,143 @@ const ChatWindow = ({
           ) : (
             messages.map((msg, index) => {
               const isMe = (msg.senderId?._id || msg.senderId) === myAccountId;
+
               return (
                 <div
                   key={msg._id || index}
-                  className={`flex ${
+                  className={`flex w-full ${
                     isMe ? "justify-end" : "justify-start"
-                  } items-end gap-3 animate-in fade-in slide-in-from-bottom-2`}
+                  } mb-4 px-2 animate-in fade-in slide-in-from-bottom-2`}
                 >
-                  {!isMe && (
-                    <img
-                      src={msg.senderId?.avatar || DefaultAvatar}
-                      className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200"
-                      alt=""
-                    />
-                  )}
                   <div
-                    className={`flex flex-col ${
-                      isMe ? "items-end" : "items-start"
-                    } max-w-[75%]`}
+                    className={`flex gap-3 max-w-[80%] md:max-w-[70%] ${
+                      isMe ? "flex-row-reverse" : "flex-row"
+                    }`}
                   >
-                    {msg.message && (
-                      <div
-                        className={`px-4 py-2.5 rounded-[20px] text-[14.5px] shadow-sm ${
-                          isMe
-                            ? "bg-blue-600 text-white rounded-br-none"
-                            : "bg-white text-slate-800 border border-slate-100 rounded-bl-none"
+                    {/* Avatar */}
+                    {!isMe && (
+                      <div className="flex-shrink-0 mt-auto mb-6">
+                        <img
+                          src={msg.senderId?.avatar?.url || defAvatar}
+                          className="w-8 h-8 rounded-full object-cover ring-2 ring-white shadow-sm border border-slate-100"
+                          alt="avatar"
+                        />
+                      </div>
+                    )}
+
+                    <div
+                      className={`flex flex-col ${
+                        isMe ? "items-end" : "items-start"
+                      }`}
+                    >
+                      {/* Tên người gửi (Chỉ hiện cho người khác) */}
+                      {!isMe && (
+                        <span className="text-[11px] font-bold text-slate-500 ml-1 mb-1 uppercase tracking-tight">
+                          {msg.senderId?.displayName}
+                        </span>
+                      )}
+
+                      {/* Nội dung tin nhắn văn bản */}
+                      {msg.message && (
+                        <div
+                          className={`px-4 py-2.5 rounded-[22px] text-[14.5px] leading-relaxed shadow-sm relative ${
+                            isMe
+                              ? "bg-blue-600 text-white rounded-br-none shadow-blue-100"
+                              : "bg-white text-slate-800 border border-slate-100 rounded-bl-none shadow-slate-50"
+                          }`}
+                        >
+                          {msg.message}
+                        </div>
+                      )}
+
+                      {/* Media: Image/Video/File */}
+                      {msg.media && (
+                        <div
+                          className={`mt-2 group relative ${
+                            isMe ? "flex justify-end" : ""
+                          }`}
+                        >
+                          {/* IMAGE */}
+                          {msg.media.type === "image" && (
+                            <div className="overflow-hidden rounded-2xl border border-slate-100 shadow-sm transition-transform hover:scale-[1.02]">
+                              <img
+                                src={msg.media.url}
+                                onClick={() =>
+                                  setLightbox({
+                                    url: msg.media.url,
+                                    type: "image",
+                                  })
+                                }
+                                className="max-h-72 w-full object-contain cursor-pointer bg-slate-50"
+                              />
+                            </div>
+                          )}
+
+                          {/* VIDEO */}
+                          {msg.media.type === "video" && (
+                            <div
+                              className="relative cursor-pointer rounded-2xl overflow-hidden border border-slate-100 shadow-sm transition-transform hover:scale-[1.02] bg-black"
+                              onClick={() =>
+                                setLightbox({
+                                  url: msg.media.url,
+                                  type: "video",
+                                })
+                              }
+                            >
+                              <video src={msg.media.url} className="max-h-72" />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                                <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/30">
+                                  <PlayCircle
+                                    className="text-white fill-white"
+                                    size={28}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* FILE */}
+                          {msg.media.type === "file" && (
+                            <div className="flex items-center gap-3 p-3.5 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-blue-300 transition-colors">
+                              <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                                <FileText size={22} />
+                              </div>
+                              <div className="flex flex-col min-w-0 pr-2">
+                                <span className="text-sm font-bold text-slate-700 truncate max-w-[160px]">
+                                  {msg.media.fileName}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  Tài liệu đính kèm
+                                </span>
+                              </div>
+                              <a
+                                href={msg.media.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                              >
+                                <Download size={18} />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Timestamp */}
+                      <span
+                        className={`text-[10px] text-slate-400 mt-1.5 font-medium flex items-center gap-1 ${
+                          isMe ? "mr-1" : "ml-1"
                         }`}
                       >
-                        {msg.message}
-                      </div>
-                    )}
-                    {msg.media && (
-                      <div className="mt-2">
-                        {msg.media.type === "image" && (
-                          <img
-                            src={msg.media.url}
-                            onClick={() =>
-                              setLightbox({ url: msg.media.url, type: "image" })
-                            }
-                            className="rounded-2xl max-h-80 cursor-pointer shadow-sm border border-slate-100"
-                          />
+                        {new Date(msg.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                        {isMe && (
+                          <div className="w-1 h-1 rounded-full bg-slate-300 ml-1" />
                         )}
-                        {msg.media.type === "video" && (
-                          <div
-                            className="relative cursor-pointer rounded-2xl overflow-hidden border border-slate-100"
-                            onClick={() =>
-                              setLightbox({ url: msg.media.url, type: "video" })
-                            }
-                          >
-                            <video src={msg.media.url} className="max-h-80" />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                              <PlayCircle className="text-white" size={48} />
-                            </div>
-                          </div>
-                        )}
-                        {msg.media.type === "file" && (
-                          <div className="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
-                            <FileText className="text-blue-600" size={20} />
-                            <span className="text-sm font-bold text-slate-700 truncate max-w-[150px]">
-                              {msg.media.fileName}
-                            </span>
-                            <a
-                              href={msg.media.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-slate-300 hover:text-blue-600"
-                            >
-                              <Download size={18} />
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    <span className="text-[9px] text-slate-300 mt-1.5 uppercase italic">
-                      {new Date(msg.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
+                      </span>
+                    </div>
                   </div>
                 </div>
               );

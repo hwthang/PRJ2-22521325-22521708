@@ -193,7 +193,7 @@ const EditDocumentForm = ({ document, onSubmit }) => {
               <input
                 type="file"
                 className="hidden"
-                accept="application/pdf"
+                accept=".pdf"
                 disabled={isUploading}
                 onChange={handleFileUpload}
               />

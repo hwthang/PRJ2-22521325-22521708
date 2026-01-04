@@ -86,7 +86,7 @@ const MemberImportExcelItem = ({ data, status = "pending", message = "", errors 
     { key: "memberCode", label: "Mã đoàn viên", value: data.memberCode, icon: User },
     { key: "gender", label: "Giới tính", value: data.gender, icon: User },
     { key: "dateOfBirth", label: "Ngày sinh", value: formatDate(data.dateOfBirth), icon: Calendar },
-    { key: "placeOfBirth", label: "Quê quán", value: data.placeOfBirth, icon: MapPin },
+    { key: "hometown", label: "Quê quán", value: data.hometown, icon: MapPin },
     { key: "address", label: "Địa chỉ", value: data.address, icon: MapPin },
     { key: "ethnicity", label: "Dân tộc", value: data.ethnicity, icon: User },
     { key: "religion", label: "Tôn giáo", value: data.religion, icon: User },

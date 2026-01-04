@@ -5,11 +5,28 @@ import DefaultAvatar from "../../../core/assets/images/avatar.png";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
 import { formatRelativeTime } from "../../../utils/date";
+import { defAvatar } from "../../../core/assets/images";
 
 const ChatSidebar = ({ chatList, onSelectChat, myAccountId }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchParams] = useSearchParams();
   const activeChatId = searchParams.get("conversationId");
+
+  // Logic helper để hiển thị nội dung tin nhắn cuối cùng
+  const renderLastMessageContent = (lastMessage) => {
+    if (!lastMessage) return "Bắt đầu trò chuyện...";
+
+    // Nếu có media (tệp, ảnh, video)
+    if (lastMessage.media) {
+      const type = lastMessage.media.type;
+      if (type === "image") return "📷 Đã gửi một ảnh";
+      if (type === "video") return "🎥 Đã gửi một video";
+      return "📁 Đã gửi một tệp";
+    }
+
+    // Nếu là tin nhắn văn bản bình thường
+    return lastMessage.message || "Bắt đầu trò chuyện...";
+  };
 
   const filteredChats = useMemo(() => {
     return chatList
@@ -19,7 +36,10 @@ const ChatSidebar = ({ chatList, onSelectChat, myAccountId }) => {
           ...chat,
           displayName:
             chat.name || other?.displayName || other?.fullname || "Người dùng",
-          displayAvatar: other?.avatar || DefaultAvatar,
+          displayAvatar:
+            chat?.members?.length > 2
+              ? defAvatar
+              : other?.avatar?.url || defAvatar,
         };
       })
       .filter((c) =>
@@ -73,7 +93,7 @@ const ChatSidebar = ({ chatList, onSelectChat, myAccountId }) => {
                   }`}
                 >
                   <img
-                    src={chat.displayAvatar}
+                    src={chat?.displayAvatar || defAvatar}
                     className="w-full h-full object-cover"
                     alt=""
                   />
@@ -110,11 +130,12 @@ const ChatSidebar = ({ chatList, onSelectChat, myAccountId }) => {
                       : "text-slate-400"
                   }`}
                 >
-                  {chat.lastMessage?.message || "Bắt đầu trò chuyện..."}
+                  {/* Sử dụng hàm helper ở đây */}
+                  {renderLastMessageContent(chat.lastMessage)}
                 </p>
               </div>
               {isUnread && !isActive && (
-                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                <div className="w-2.5 h-2.5 bg-blue-600 rounded-full border-2 border-white shadow-sm"></div>
               )}
             </div>
           );

@@ -11,6 +11,8 @@ import {
   Venus,
   Mars,
   ChevronDown,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import useForm from "../../../core/hooks/useForm";
 import useMemberUpdate from "../hook/useMemberUpdate";
@@ -18,7 +20,6 @@ import { toDateInputValue } from "../../../utils/date";
 import apiClient from "../../../utils/api";
 
 // --- Sub-component: Change Password Popup ---
-// (Giữ nguyên logic cũ của bạn)
 const ChangePasswordPopup = ({ isOpen, onClose, accountId }) => {
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -105,7 +106,6 @@ const MemberDetailForm = ({ data }) => {
   const [isDirty, setIsDirty] = useState(false);
   const [showPasswordPopup, setShowPasswordPopup] = useState(false);
 
-  // 1. Lấy thông tin Chi đoàn từ LocalStorage
   const myAccountRaw = localStorage.getItem("my_account");
   const myAccount = myAccountRaw ? JSON.parse(myAccountRaw) : null;
   const isChapterAdmin = myAccount?.type === "chapter";
@@ -139,9 +139,7 @@ const MemberDetailForm = ({ data }) => {
   };
 
   const fetchChapters = async () => {
-    // Nếu là admin chi đoàn, không cần fetch danh sách chi đoàn khác
     if (isChapterAdmin) return;
-    
     try {
       const res = await apiClient.get("/api/chapters");
       const formattedChapters = res.data.chapters.map((item) => ({
@@ -201,6 +199,32 @@ const MemberDetailForm = ({ data }) => {
     }
   };
 
+  // --- Logic Xử lý Khóa/Mở khóa ---
+  const handleToggleActive = async (targetStatus) => {
+    setLoading(true);
+    setStatus({ type: "", message: "" });
+   const action = targetStatus ? "activate" : "inactivate";
+    try {
+      await apiClient.patch(`/api/accounts/${data.accountId}/${action}`);
+      setStatus({
+        type: "success",
+        message: targetStatus
+          ? "Kích hoạt tài khoản thành công!"
+          : "Đã khóa tài khoản thành công!",
+      });
+      // Cập nhật local state
+      formInstance.handleChangeFieldInForm("isActive", targetStatus);
+      setInitialForm(prev => ({ ...prev, isActive: targetStatus }));
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: error.response?.data?.message || "Thao tác trạng thái thất bại",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const init = {
       username: data?.username || "",
@@ -208,7 +232,6 @@ const MemberDetailForm = ({ data }) => {
       email: data?.email || "",
       phoneNumber: data?.phoneNumber || "",
       fullName: data?.fullName || "",
-      // Nếu là ChapterAdmin thì ép dùng myChapterId, ngược lại dùng chapterId từ data
       chapterId: isChapterAdmin ? myChapterId : (data?.chapterId || ""),
       gender: data?.gender || "",
       dateOfBirth: toDateInputValue(data?.dateOfBirth),
@@ -222,6 +245,7 @@ const MemberDetailForm = ({ data }) => {
       memberCode: data?.memberCode || "",
       joinedAt: toDateInputValue(data?.joinedAt),
       position: data?.position || "",
+      isActive: data?.isActive, // Lưu trạng thái isActive ban đầu
     };
     formInstance.setForm(init);
     setInitialForm(init);
@@ -238,7 +262,6 @@ const MemberDetailForm = ({ data }) => {
   return (
     <>
       <div className="grid grid-cols-12 gap-x-6 gap-y-4 border border-gray-200 rounded-md p-6 shadow-md bg-white">
-        {/* Avatar Section */}
         <div className="col-span-12 flex items-center justify-center mb-4">
           <AccountAvatar id={data?.accountId} defaultSrc={data?.avatar} />
         </div>
@@ -257,19 +280,12 @@ const MemberDetailForm = ({ data }) => {
 
         <CustomInput className="col-span-12 md:col-span-4" label="Họ và tên" name="fullName" value={formInstance.getFieldInForm("fullName")} onChange={handleChange} error={errors.fullName} />
 
-        {/* Chapter Selection Logic */}
         <div className="col-span-12 md:col-span-4">
-          <label className="text-sm font-medium block text-gray-700 mb-1.5">
-            Chi đoàn sinh hoạt
-          </label>
+          <label className="text-sm font-medium block text-gray-700 mb-1.5">Chi đoàn sinh hoạt</label>
           <div className="relative h-10 text-sm">
             {isChapterAdmin ? (
-              // Nếu là ChapterAdmin: Khóa trường này, chỉ hiển thị tên chi đoàn hiện tại
-              <div className="w-full h-full pl-2 flex items-center bg-gray-100 border border-gray-300 rounded-lg text-gray-600 font-medium">
-                {myChapterName}
-              </div>
+              <div className="w-full h-full pl-2 flex items-center bg-gray-100 border border-gray-300 rounded-lg text-gray-600 font-medium">{myChapterName}</div>
             ) : (
-              // Nếu không phải ChapterAdmin: Hiển thị dropdown như cũ
               <>
                 <select
                   name="chapterId"
@@ -289,7 +305,6 @@ const MemberDetailForm = ({ data }) => {
           {errors.chapterId && <div className="text-red-600 text-xs mt-1">{errors.chapterId}</div>}
         </div>
 
-        {/* Gender Section */}
         <div className="col-span-12 md:col-span-4">
           <label className="text-sm font-medium mb-1.5 block text-gray-700">Giới tính</label>
           <div className="flex gap-2">
@@ -308,7 +323,6 @@ const MemberDetailForm = ({ data }) => {
           </div>
         </div>
 
-        {/* Other Inputs (Giữ nguyên) */}
         <CustomInput className="col-span-12 md:col-span-4" label="Ngày sinh" type="date" name="dateOfBirth" value={formInstance.getFieldInForm("dateOfBirth")} onChange={handleChange} error={errors.dateOfBirth} />
         <CustomInput className="col-span-12 md:col-span-4" label="Ngày vào đoàn" type="date" name="joinedAt" value={formInstance.getFieldInForm("joinedAt")} onChange={handleChange} error={errors.joinedAt} />
         <CustomInput className="col-span-12 md:col-span-4" label="Mã đoàn viên" name="memberCode" value={formInstance.getFieldInForm("memberCode")} onChange={handleChange} error={errors.memberCode} />
@@ -322,16 +336,56 @@ const MemberDetailForm = ({ data }) => {
         <CustomInput className="col-span-12 md:col-span-4" label="Chức vụ" name="position" value={formInstance.getFieldInForm("position")} onChange={handleChange} error={errors.position} />
 
         {/* Action Buttons */}
-        <div className="col-span-12 grid grid-cols-1 md:grid-cols-6 gap-3 mt-6">
-          <button onClick={handleUpdate} disabled={loading || !isDirty} className={`md:col-start-1 md:col-span-2 flex items-center justify-center p-2.5 gap-2 rounded-lg text-white font-semibold transition-all ${isDirty && !loading ? "bg-blue-600 hover:bg-blue-700 shadow-md" : "bg-gray-400 cursor-not-allowed"}`}>
-            {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <UserPen className="w-5 h-5" />}
-            {loading ? "Đang cập nhật..." : "Cập nhật thông tin"}
+        <div className="col-span-12 grid grid-cols-1 md:grid-cols-10 gap-3 mt-8 text-sm">
+          <button
+            onClick={handleUpdate}
+            disabled={loading || !isDirty}
+            className={`md:col-span-2 md:col-start-2 flex items-center justify-center p-2.5 gap-2 rounded-lg text-white font-bold transition-all ${isDirty && !loading ? "bg-blue-600 hover:bg-blue-700 shadow-md" : "bg-gray-400 cursor-not-allowed"}`}
+          >
+            {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <UserPen size={18} />}
+            {loading ? "Đang lưu..." : "Cập nhật"}
           </button>
-          <button disabled={!isDirty || loading} onClick={() => formInstance.setForm(initialForm)} className={`md:col-span-2 flex items-center justify-center p-2.5 gap-2 rounded-lg text-white font-semibold transition-all ${isDirty ? "bg-red-500 hover:bg-red-600 shadow-md" : "bg-gray-400 cursor-not-allowed"}`}>
-            <SquareX className="w-5 h-5" /> Hủy thay đổi
+
+          <button
+            disabled={!isDirty || loading}
+            onClick={() => formInstance.setForm(initialForm)}
+            className={`md:col-span-2 flex items-center justify-center p-2.5 gap-2 rounded-lg text-white font-bold transition-all ${isDirty ? "bg-red-600 hover:bg-red-700 shadow-md" : "bg-gray-400 cursor-not-allowed"}`}
+          >
+            <SquareX size={18} />
+            Hủy thay đổi
           </button>
-          <button type="button" onClick={() => setShowPasswordPopup(true)} className="md:col-span-2 flex items-center justify-center p-2.5 gap-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow-md transition-all active:scale-95">
-            <RotateCcwKey className="w-5 h-5" /> Đổi mật khẩu
+
+          {/* Logic Toggle Khóa/Kích hoạt */}
+          {formInstance.getFieldInForm("isActive") ? (
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => handleToggleActive(false)}
+              className="md:col-span-2 flex p-2.5 gap-2 bg-red-700 hover:bg-red-800 text-white font-bold items-center justify-center rounded-lg shadow-md transition-all active:scale-95 disabled:bg-gray-400"
+            >
+              {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Lock size={18} />}
+              Khóa
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => handleToggleActive(true)}
+              className="md:col-span-2 flex p-2.5 gap-2 bg-green-700 hover:bg-green-800 text-white font-bold items-center justify-center rounded-lg shadow-md transition-all active:scale-95 disabled:bg-gray-400"
+            >
+              {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Unlock size={18} />}
+              Kích hoạt
+            </button>
+          )}
+
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => setShowPasswordPopup(true)}
+            className="md:col-span-2 flex p-2.5 gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold items-center justify-center rounded-lg shadow-md transition-all active:scale-95 disabled:bg-gray-400"
+          >
+            <RotateCcwKey size={18} />
+            Đổi mật khẩu
           </button>
         </div>
 

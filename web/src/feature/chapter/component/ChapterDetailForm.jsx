@@ -11,6 +11,8 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import useChapterUpdate from "../hook/useChapterUpdate";
 import { toDateInputValue } from "../../../utils/date";
@@ -32,7 +34,6 @@ const ChangePasswordPopup = ({ isOpen, onClose, accountId }) => {
     setStatus({ type: "", message: "" });
 
     try {
-      // Gọi đúng API theo yêu cầu: /api/accounts/:id/recover-password
       await apiClient.patch(`/api/accounts/${accountId}/recover-password`, {
         password: newPassword,
       });
@@ -59,16 +60,22 @@ const ChangePasswordPopup = ({ isOpen, onClose, accountId }) => {
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-300">
         <div className="p-5 border-b flex justify-between items-center bg-gray-50">
           <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-            <RotateCcwKey className="w-5 h-5 text-orange-700" /> Đặt lại mật khẩu
+            <RotateCcwKey className="w-5 h-5 text-orange-700" /> Đặt lại mật
+            khẩu
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-red-500 transition-colors"
+          >
             <SquareX className="w-6 h-6" />
           </button>
         </div>
 
         <div className="p-6 space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700">Mật khẩu mới</label>
+            <label className="text-sm font-semibold text-gray-700">
+              Mật khẩu mới
+            </label>
             <input
               type="password"
               value={newPassword}
@@ -79,10 +86,18 @@ const ChangePasswordPopup = ({ isOpen, onClose, accountId }) => {
           </div>
 
           {status.message && (
-            <div className={`p-3 rounded-lg text-sm font-medium flex items-center gap-2 ${
-              status.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-            }`}>
-              {status.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            <div
+              className={`p-3 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                status.type === "success"
+                  ? "bg-green-50 text-green-700"
+                  : "bg-red-50 text-red-700"
+              }`}
+            >
+              {status.type === "success" ? (
+                <CheckCircle className="w-4 h-4" />
+              ) : (
+                <AlertCircle className="w-4 h-4" />
+              )}
               {status.message}
             </div>
           )}
@@ -99,7 +114,11 @@ const ChangePasswordPopup = ({ isOpen, onClose, accountId }) => {
               disabled={loading}
               className="flex-1 py-2 bg-orange-700 hover:bg-orange-800 text-white rounded-md font-medium flex items-center justify-center gap-2 disabled:bg-gray-400 transition-all"
             >
-              {loading ? <Loader2 className="animate-spin w-4 h-4" /> : "Xác nhận"}
+              {loading ? (
+                <Loader2 className="animate-spin w-4 h-4" />
+              ) : (
+                "Xác nhận"
+              )}
             </button>
           </div>
         </div>
@@ -131,28 +150,21 @@ const ChapterDetailForm = ({ data }) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneRegex = /^[0-9]{9,15}$/;
 
-    if (!formInstance.getFieldInForm("username")) {
+    if (!formInstance.getFieldInForm("username"))
       newErrors.username = "Tên đăng nhập không được để trống";
-    }
-
     const email = formInstance.getFieldInForm("email");
     if (!email) newErrors.email = "Email không được để trống";
     else if (!emailRegex.test(email)) newErrors.email = "Email không hợp lệ";
-
     const phone = formInstance.getFieldInForm("phoneNumber");
     if (!phone) newErrors.phoneNumber = "Số điện thoại không được để trống";
     else if (!phoneRegex.test(phone))
       newErrors.phoneNumber = "Số điện thoại không hợp lệ";
-
     if (!formInstance.getFieldInForm("name"))
       newErrors.name = "Tên chi đoàn không được để trống";
-
     if (!formInstance.getFieldInForm("affiliated"))
       newErrors.affiliated = "Đoàn trực thuộc không được để trống";
-
     if (!formInstance.getFieldInForm("establishedAt"))
       newErrors.establishedAt = "Ngày thành lập không được để trống";
-
     if (!formInstance.getFieldInForm("address"))
       newErrors.address = "Địa chỉ không được để trống";
 
@@ -168,14 +180,46 @@ const ChapterDetailForm = ({ data }) => {
     try {
       const response = await updateChapter(data.id, formInstance.form);
       if (response.success) {
-        setStatus({ type: "success", message: "Cập nhật chi đoàn thành công!" });
+        setStatus({
+          type: "success",
+          message: "Cập nhật chi đoàn thành công!",
+        });
         setInitialForm(formInstance.form);
         setIsDirty(false);
       } else {
-        setStatus({ type: "error", message: response.message || "Có lỗi xảy ra" });
+        setStatus({
+          type: "error",
+          message: response.message || "Có lỗi xảy ra",
+        });
       }
     } catch (e) {
       setStatus({ type: "error", message: e.message || "Có lỗi xảy ra" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- Logic Xử lý Khóa/Mở khóa ---
+  const handleToggleActive = async (targetStatus) => {
+    setLoading(true);
+    setStatus({ type: "", message: "" });
+    const action = targetStatus ? "activate" : "inactivate";
+    try {
+      await apiClient.patch(`/api/accounts/${data.accountId}/${action}`);
+      setStatus({
+        type: "success",
+        message: targetStatus
+          ? "Kích hoạt tài khoản thành công!"
+          : "Đã khóa tài khoản thành công!",
+      });
+      // Cập nhật local state của form để đồng bộ UI
+      formInstance.handleChangeFieldInForm("isActive", targetStatus);
+      setInitialForm((prev) => ({ ...prev, isActive: targetStatus }));
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: error.response?.data?.message || "Thao tác thất bại",
+      });
     } finally {
       setLoading(false);
     }
@@ -187,6 +231,7 @@ const ChapterDetailForm = ({ data }) => {
       email: data?.email,
       phoneNumber: data?.phoneNumber,
       name: data?.name,
+      isActive: data?.isActive,
       affiliated: data?.affiliated,
       establishedAt: toDateInputValue(data?.establishedAt),
       address: data?.address,
@@ -196,7 +241,8 @@ const ChapterDetailForm = ({ data }) => {
   }, [data]);
 
   useEffect(() => {
-    const changed = JSON.stringify(formInstance.form) !== JSON.stringify(initialForm);
+    const changed =
+      JSON.stringify(formInstance.form) !== JSON.stringify(initialForm);
     setIsDirty(changed);
   }, [formInstance.form, initialForm]);
 
@@ -206,7 +252,7 @@ const ChapterDetailForm = ({ data }) => {
         <div className="col-span-12 flex items-center justify-center mt-2">
           <AccountAvatar id={data?.accountId} defaultSrc={data?.avatar} />
         </div>
-        
+
         <div className="col-span-12 text-2xl font-medium mt-4 border-b pb-2">
           THÔNG TIN TÀI KHOẢN
         </div>
@@ -291,10 +337,18 @@ const ChapterDetailForm = ({ data }) => {
           <button
             onClick={handleUpdate}
             disabled={loading || !isDirty}
-            className={`text-sm font-semibold md:col-start-3 md:col-span-2 flex items-center justify-center p-2.5 gap-2 rounded-md text-white transition-all
-              ${isDirty && !loading ? "bg-blue-600 hover:bg-blue-700 shadow-md" : "bg-gray-400 cursor-not-allowed"}`}
+            className={`text-sm font-semibold md:col-start-2 md:col-span-2 flex items-center justify-center p-2.5 gap-2 rounded-md text-white transition-all
+              ${
+                isDirty && !loading
+                  ? "bg-blue-600 hover:bg-blue-700 shadow-md"
+                  : "bg-gray-400 cursor-not-allowed"
+              }`}
           >
-            {loading ? <Loader2 className="animate-spin" /> : <UserPen size={18} />}
+            {loading ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <UserPen size={18} />
+            )}
             {loading ? "Đang lưu..." : "Cập nhật"}
           </button>
 
@@ -302,16 +356,52 @@ const ChapterDetailForm = ({ data }) => {
             disabled={!isDirty || loading}
             onClick={() => formInstance.setForm(initialForm)}
             className={`text-sm font-semibold md:col-span-2 flex p-2.5 gap-2 items-center justify-center rounded-md text-white transition-all
-              ${isDirty ? "bg-red-600 hover:bg-red-700 shadow-md" : "bg-gray-400 cursor-not-allowed"}`}
+              ${
+                isDirty
+                  ? "bg-red-600 hover:bg-red-700 shadow-md"
+                  : "bg-gray-400 cursor-not-allowed"
+              }`}
           >
             <SquareX size={18} />
             Hủy thay đổi
           </button>
 
-          <button 
+          {/* Logic Toggle Khóa/Kích hoạt */}
+          {formInstance.getFieldInForm("isActive") ? (
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => handleToggleActive(false)}
+              className="text-sm font-semibold md:col-span-2 flex p-2.5 gap-2 bg-red-700 hover:bg-red-800 text-white items-center justify-center rounded-md shadow-md transition-all active:scale-95 disabled:bg-gray-400"
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <Lock size={18} />
+              )}
+              Khóa
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => handleToggleActive(true)}
+              className="text-sm font-semibold md:col-span-2 flex p-2.5 gap-2 bg-green-700 hover:bg-green-800 text-white items-center justify-center rounded-md shadow-md transition-all active:scale-95 disabled:bg-gray-400"
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <Unlock size={18} />
+              )}
+              Kích hoạt
+            </button>
+          )}
+
+          <button
             type="button"
+            disabled={loading}
             onClick={() => setShowPasswordPopup(true)}
-            className="text-sm font-semibold md:col-span-2 flex p-2.5 gap-2 bg-orange-700 hover:bg-orange-800 text-white items-center justify-center rounded-md shadow-md transition-all active:scale-95"
+            className="text-sm font-semibold md:col-span-2 flex p-2.5 gap-2 bg-orange-700 hover:bg-orange-800 text-white items-center justify-center rounded-md shadow-md transition-all active:scale-95 disabled:bg-gray-400"
           >
             <RotateCcwKey size={18} />
             Đổi mật khẩu
@@ -320,20 +410,27 @@ const ChapterDetailForm = ({ data }) => {
 
         {/* --- Status Message --- */}
         {status.message && (
-          <div className={`col-span-12 mt-4 flex items-center gap-2 p-3 rounded-md text-sm font-bold animate-in slide-in-from-top-2 duration-300 ${
-            status.type === "success" ? "bg-green-100 text-green-800 border border-green-200" : "bg-red-100 text-red-800 border border-red-200"
-          }`}>
-            {status.type === "success" ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          <div
+            className={`col-span-12 mt-4 flex items-center gap-2 p-3 rounded-md text-sm font-bold animate-in slide-in-from-top-2 duration-300 ${
+              status.type === "success"
+                ? "bg-green-100 text-green-800 border border-green-200"
+                : "bg-red-100 text-red-800 border border-red-200"
+            }`}
+          >
+            {status.type === "success" ? (
+              <CheckCircle size={18} />
+            ) : (
+              <AlertCircle size={18} />
+            )}
             {status.message}
           </div>
         )}
       </div>
 
-      {/* Popup Đổi mật khẩu */}
-      <ChangePasswordPopup 
-        isOpen={showPasswordPopup} 
-        onClose={() => setShowPasswordPopup(false)} 
-        accountId={data?.accountId} 
+      <ChangePasswordPopup
+        isOpen={showPasswordPopup}
+        onClose={() => setShowPasswordPopup(false)}
+        accountId={data?.accountId}
       />
     </>
   );

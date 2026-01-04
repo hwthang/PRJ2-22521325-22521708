@@ -85,9 +85,9 @@ export const eventStatuses = {
     color: "green",
     icon: "CheckCircle2",
   },
-  canceled: {
-    label: "Đã hủy",
-    color: "red",
-    icon: "XCircle",
-  },
+  // canceled: {
+  //   label: "Đã hủy",
+  //   color: "red",
+  //   icon: "XCircle",
+  // },
 };
