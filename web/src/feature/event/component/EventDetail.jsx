@@ -96,7 +96,7 @@ const EventDetail = ({
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 font-bold text-base border border-blue-100 uppercase">
-                <img src={event.chapterId?.accountId?.avatar?.url || defAvatar``} className="rounded-lg"/>
+                <img src={event.chapterId?.accountId?.avatar?.url || defAvatar} className="rounded-lg"/>
               </div>
               <div>
                 <h4 className="font-bold text-slate-800 uppercase tracking-tight">

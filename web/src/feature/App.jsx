@@ -88,11 +88,20 @@ function App() {
       const type = JSON.parse(myAccount).type;
       navigate(`/app/${type}/incoming-call?from=${payload.from}`);
     };
+
+    const handleCancelCall = (payload) => {
+      console.log("📩 CANCEL_CALL:", payload);
+
+      const myAccount = localStorage.getItem("my_account");
+      const type = JSON.parse(myAccount).type;
+      navigate(`/app/${type}/chat?conversationId=${payload.callId}`);
+    };
     socket.on("welcome", handleWelcome);
     socket.on("new_event_for_member", handleNewEventForMember);
     socket.on("new_message", handleNewMessage);
 
     socket.on("call:incoming", handleIncomingCall);
+    socket.on("call:cancelled", handleCancelCall);
 
     return () => {
       socket.off("welcome", handleWelcome);
@@ -141,7 +150,7 @@ function App() {
             <Route path="surveys/:id" element={<SurveyDetailPage />} />
             <Route path="chat" element={<ChatPage />} />
             <Route path="incoming-call" element={<IncomingCallPage />} />
-             <Route path="waiting-call" element={<WaitingCallPage />} />
+            <Route path="waiting-call" element={<WaitingCallPage />} />
             <Route path="video-call" element={<VideoCallPage />} />
           </Route>
 
@@ -158,7 +167,7 @@ function App() {
             />
             <Route path="chat" element={<ChatPage />} />
             <Route path="video-call" element={<VideoCallPage />} />
-             <Route path="waiting-call" element={<WaitingCallPage />} />
+            <Route path="waiting-call" element={<WaitingCallPage />} />
             <Route path="incoming-call" element={<IncomingCallPage />} />
           </Route>
 

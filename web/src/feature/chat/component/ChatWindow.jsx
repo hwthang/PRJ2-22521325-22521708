@@ -75,7 +75,11 @@ const ChatWindow = ({
         callId: chatData._id,
       }),
     });
-    navigate(`/app/${role}/waiting-call?to=${toId}`);
+
+   onSendMessage("Đã thực hiện cuộc gọi");
+    navigate(
+      `/app/${role}/waiting-call?to=${toId}&callId=${chatData._id}&from=${myAccountId}`
+    );
   };
 
   const otherMember = chatData.members?.find(
@@ -143,9 +147,6 @@ const ChatWindow = ({
               >
                 {displayName}
               </h2>
-              <span className="text-[10px] text-green-500 font-bold uppercase">
-                Đang trực tuyến
-              </span>
             </div>
           </div>
           <div className="flex items-center gap-1">
