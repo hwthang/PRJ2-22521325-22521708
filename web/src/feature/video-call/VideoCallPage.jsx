@@ -1,250 +1,243 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
-  Mic,
-  MicOff,
-  Video,
-  VideoOff,
-  PhoneOff,
-  Settings,
-  Maximize2,
+  Mic, MicOff, Video, VideoOff, PhoneOff, User, 
+  AlertTriangle, Loader2
 } from "lucide-react";
 import {
-  PaginatedGridLayout,
-  StreamCall,
-  StreamTheme,
-  StreamVideo,
-  StreamVideoClient,
-  VideoPreview,
+  PaginatedGridLayout, StreamCall, StreamTheme, 
+  StreamVideo, StreamVideoClient, VideoPreview,
 } from "@stream-io/video-react-sdk";
+import "@stream-io/video-react-sdk/dist/css/styles.css";
 import { base_url } from "../../utils/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 const VideoCallPage = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const callId = searchParams.get("callId");
+  const toId = searchParams.get("to");
+  const fromId = searchParams.get("from");
+
   const [client, setClient] = useState();
   const [call, setCall] = useState();
-  const navigate = useNavigate();
-
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [showExitPopup, setShowExitPopup] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
+
+  // Khóa để ngăn gọi API nhiều lần
+  const hasInitialized = useRef(false);
+  const myAccount = JSON.parse(localStorage.getItem("my_account") || "{}");
+
+  // 1. Khởi tạo Stream Client (Chỉ chạy 1 lần)
   useEffect(() => {
-    fetch(`${base_url}/create-user-token`, {
-      method: "POSt",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        id: searchParams.get("id"),
-        name: searchParams.get("Thắng"),
-      }),
-    })
-      .then((res) => res.json())
-      .then((json) => {
-        const myClient = StreamVideoClient.getOrCreateInstance(json);
+    if (!myAccount._id || hasInitialized.current) return;
+    hasInitialized.current = true;
+
+    const initClient = async () => {
+      try {
+        const response = await fetch(`${base_url}/create-user-token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: myAccount._id, name: myAccount.displayName }),
+        });
+        const json = await response.json();
+
+        const myClient = new StreamVideoClient({
+          apiKey: json.apiKey,
+          user: { id: myAccount._id, name: myAccount.displayName },
+          token: json.token,
+        });
         setClient(myClient);
-      });
-
-    return () => {
-      client?.disconnectUser();
-      setClient(undefined);
+      } catch (err) {
+        console.error("Lỗi khởi tạo Client:", err);
+        hasInitialized.current = false; // Cho phép thử lại nếu lỗi mạng
+      }
     };
-  }, []);
 
+    initClient();
+    return () => {
+      // client?.disconnectUser(); // Thường không ngắt ở đây để tránh mất kết nối khi re-render
+    };
+  }, [myAccount._id, myAccount.displayName]);
+
+  // 2. Thiết lập cuộc gọi
   useEffect(() => {
-    if (!client) return;
-
-    const myCall = client.call("default", searchParams.get("callId"));
-
+    if (!client || !callId) return;
+    
+    const myCall = client.call("default", callId);
     const setupCall = async () => {
       try {
         await myCall.getOrCreate();
         await myCall.join({ create: true });
-        setCall(myCall); // Only set state once the call is fully initialized
+        // Đảm bảo thiết bị được bật ngay khi join
+        await myCall.camera.enable();
+        await myCall.microphone.enable();
+        setCall(myCall);
       } catch (err) {
-        console.error("Failed to setup call:", err);
+        console.error("Lỗi thiết lập cuộc gọi:", err);
       }
     };
 
     setupCall();
-
     return () => {
-      myCall.leave().catch((err) => console.error(err));
-      setCall(undefined);
+      // Khi unmount component mà không qua confirmEndCall
+      if (myCall.state.callingState !== 'left') {
+        myCall.leave().catch(console.error);
+      }
     };
-  }, [client]);
+  }, [client, callId]);
 
-  // 1. Khởi tạo loading
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // --- CÁC HÀM XỬ LÝ (HANDLERS) ---
-
-  // Xử lý bật/tắt Micro
   const handleToggleMic = async () => {
-    try {
-      // Lấy giá trị mới nhất dựa trên giá trị cũ
-      const nextMutedState = !isMuted;
-      setIsMuted(nextMutedState);
-
-      if (nextMutedState) {
-        await call.microphone.disable();
-        console.log("Mic đã tắt");
-      } else {
-        await call.microphone.enable();
-        console.log("Mic đã bật");
-      }
-    } catch (error) {
-      console.error("Lỗi khi điều khiển Mic:", error);
-      // Nếu lỗi, nên hoàn tác (revert) lại UI
-      setIsMuted(isMuted);
-    }
+    if (!call) return;
+    const nextState = !isMuted;
+    setIsMuted(nextState);
+    nextState ? await call.microphone.disable() : await call.microphone.enable();
   };
-  // Xử lý bật/tắt Camera
+
   const handleToggleVideo = async () => {
+    if (!call) return;
+    const nextState = !isVideoOff;
+    setIsVideoOff(nextState);
+    nextState ? await call.camera.disable() : await call.camera.enable();
+  };
+
+  const confirmEndCall = async () => {
     try {
-      const nextVideoState = !isVideoOff;
-      setIsVideoOff(nextVideoState);
-
-      if (nextVideoState) {
-        await call.camera.disable();
-        console.log("Camera đã tắt");
-      } else {
-        await call.camera.enable();
-        console.log("Camera đã bật");
-      }
+      setIsEnding(true);
+      await fetch(`${base_url}/api/calls/end`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: myAccount._id,
+          to: toId === myAccount._id ? fromId : toId,
+          callId: callId,
+        }),
+      });
+      if (call) await call.endCall(); // endCall kết thúc cho mọi người, leave chỉ mình rời đi
+      navigate(`/app/${myAccount.type}/chat?conversationId=${callId}`);
     } catch (error) {
-      console.error("Lỗi khi điều khiển Camera:", error);
-      setIsVideoOff(isVideoOff);
+      console.error(error);
+    } finally {
+      setIsEnding(false);
+      setShowExitPopup(false);
     }
   };
 
-  // Xử lý kết thúc cuộc gọi
-  const handleEndCall = () => {
-    if (window.confirm("Bạn có chắc chắn muốn rời khỏi cuộc gọi?")) {
-      console.log("Kết thúc cuộc gọi..."); // Giả lập quay lại ban đầu
-      // Thực tế: window.location.href = "/dashboard" hoặc đóng stream
-      const myAccount = localStorage.getItem("my_account");
-      const role = JSON.parse(myAccount).type;
-      navigate(`/app/${role}/dashboard`);
-    }
-  };
-
-  // Xử lý phóng to video preview (PIP)
-  const handleMaximizePreview = (e) => {
-    e.stopPropagation(); // Ngăn sự kiện nổi bọt
-    alert("Chế độ xem toàn màn hình cho video của bạn");
-  };
-
-  // --- GIAO DIỆN LOADING ---
   if (!client || !call) {
     return (
-      <div className="h-screen bg-zinc-950 flex flex-col items-center justify-center text-white">
-        <div className="relative flex items-center justify-center">
-          <div className="absolute w-24 h-24 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
-          <Video size={32} className="text-blue-500 animate-pulse" />
-        </div>
-        <h1 className="mt-8 text-xl font-medium tracking-tight">
-          Đang kết nối tín hiệu...
-        </h1>
+      <div className="h-screen bg-[#050505] flex flex-col items-center justify-center text-white">
+        <div className="w-16 h-16 border-4 border-blue-600/20 border-t-blue-500 rounded-full animate-spin mb-6"></div>
+        <p className="text-zinc-500 font-medium tracking-widest uppercase text-[10px]">Secure Connection...</p>
       </div>
     );
   }
 
-  // --- GIAO DIỆN CHÍNH ---
   return (
-    <div className="h-screen bg-zinc-950 text-white flex flex-col p-4 font-sans">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4 px-2">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-        </div>
-      </div>
-
-      {/* Main Video Area */}
+    <div className="h-screen bg-black text-white flex flex-col font-sans overflow-hidden">
       <StreamVideo client={client}>
         <StreamCall call={call}>
           <StreamTheme>
-            {/* Control Bar */}{" "}
-            <div className="flex-1 relative bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl">
-              <div className="relative w-full h-full">
-                {/* Đối tác */}
-                <div className="w-full h-150 bg-zinc-800 flex items-center justify-center">
-                  <PaginatedGridLayout
-                    filterParticipants={(p) => p.name != "Thắng"}
-                  />
+            <div className="flex-1 relative p-2 md:p-4">
+              <div className="w-full h-full bg-zinc-950 rounded-[2rem] md:rounded-[3rem] overflow-hidden border border-white/5 relative shadow-inner">
+                
+                {/* Đối phương */}
+                <div className="w-full h-full [&_.str-video__participant-view]:bg-transparent">
+                  <PaginatedGridLayout filterParticipants={(p) => p.userId !== myAccount._id} />
                 </div>
 
-                {/* Video Preview của bạn (PIP) */}
-                <div className="absolute bottom-6 right-6 w-40 h-60 md:w-64 md:h-36 bg-zinc-700 rounded-2xl border-2 border-zinc-900 shadow-2xl overflow-hidden z-10 transition-all duration-300">
-                  <div className="w-full h-full flex items-center justify-center bg-zinc-600 relative group">
+                {/* PIP: Video của bạn - Đã sửa lỗi kích thước */}
+                <div className="absolute top-6 right-6 w-24 h-36 md:w-44 md:h-28 bg-zinc-900/90 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden z-10 transition-transform hover:scale-105 active:scale-95 group">
+                  <div className="w-full h-full relative overflow-hidden">
                     {isVideoOff ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <VideoOff size={24} className="text-zinc-500" />
-                        <span className="text-[10px] text-zinc-500">
-                          Camera Off
-                        </span>
+                      <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+                        <User className="text-zinc-700" size={24} />
                       </div>
                     ) : (
-                      <VideoPreview />
+                      <div className="video-preview-container w-full h-full overflow-hidden">
+                        <VideoPreview />
+                      </div>
                     )}
+                    
+                    {/* Overlay thông tin nhỏ */}
+                    <div className="absolute bottom-1.5 left-2 flex items-center gap-1.5 bg-black/40 px-1.5 py-0.5 rounded-md backdrop-blur-sm">
+                      <div className={`w-1.5 h-1.5 rounded-full ${isMuted ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                      <span className="text-[8px] font-bold text-white/70 uppercase tracking-tighter">Bạn</span>
+                    </div>
+                  </div>
+                </div>
 
-                    {/* Nút Maximize ẩn/hiện khi hover */}
+                {/* Status Badge */}
+                <div className="absolute top-8 left-8 flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/5 shadow-lg">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-400">Live</span>
+                </div>
+              </div>
+            </div>
 
-                    <span className="absolute bottom-2 left-2 text-[10px] bg-black/60 px-2 py-0.5 rounded-md backdrop-blur-sm">
-                      Bạn {isMuted && " (Muted)"}
-                    </span>
+            {/* Controls */}
+            <div className="pb-8 pt-2 flex justify-center">
+              <div className="flex items-center gap-3 bg-zinc-900/60 backdrop-blur-2xl p-2 px-5 rounded-full border border-white/10 shadow-2xl">
+                <button onClick={handleToggleMic} className={`p-4 rounded-full transition-all ${isMuted ? "bg-red-500/20 text-red-500 border border-red-500/30" : "bg-zinc-800/80 text-zinc-400 hover:text-white"}`}>
+                  {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+                </button>
+
+                <button onClick={handleToggleVideo} className={`p-4 rounded-full transition-all ${isVideoOff ? "bg-red-500/20 text-red-500 border border-red-500/30" : "bg-zinc-800/80 text-zinc-400 hover:text-white"}`}>
+                  {isVideoOff ? <VideoOff size={20} /> : <Video size={20} />}
+                </button>
+
+                <div className="w-[1px] h-6 bg-white/10 mx-1"></div>
+
+                <button onClick={() => setShowExitPopup(true)} className="bg-red-600 hover:bg-red-500 text-white px-8 py-4 rounded-full font-bold transition-all shadow-lg shadow-red-600/20 flex items-center gap-2 active:scale-95">
+                  <PhoneOff size={18} />
+                  <span className="text-[11px] uppercase tracking-widest hidden sm:inline">Kết thúc</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Exit Confirmation */}
+            {showExitPopup && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+                <div className="bg-zinc-900 border border-white/10 rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
+                  <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mx-auto mb-6 border border-red-500/20">
+                    <AlertTriangle size={30} />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">Rời cuộc gọi?</h3>
+                  <p className="text-zinc-500 text-xs leading-relaxed mb-8">Bạn có chắc muốn kết thúc phiên làm việc này?</p>
+                  <div className="flex gap-3">
+                    <button onClick={() => setShowExitPopup(false)} className="flex-1 py-3.5 rounded-full bg-zinc-800 text-zinc-300 text-xs font-bold hover:bg-zinc-700 transition-all">Quay lại</button>
+                    <button onClick={confirmEndCall} disabled={isEnding} className="flex-1 py-3.5 rounded-full bg-red-600 text-white text-xs font-bold hover:bg-red-500 transition-all flex items-center justify-center gap-2">
+                      {isEnding ? <Loader2 className="animate-spin" size={16} /> : "Rời đi"}
+                    </button>
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="mt-6 flex items-center justify-center gap-4">
-              <div className="flex items-center gap-3 bg-zinc-900/90 p-3 rounded-[2rem] border border-zinc-800 backdrop-blur-md">
-                {/* Mic Button */}
-                <button
-                  onClick={handleToggleMic}
-                  className={`p-4 rounded-2xl transition-all duration-200 active:scale-95 ${
-                    isMuted
-                      ? "bg-red-500/20 text-red-500"
-                      : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                  }`}
-                >
-                  {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
-                </button>
-
-                {/* Video Button */}
-                <button
-                  onClick={handleToggleVideo}
-                  className={`p-4 rounded-2xl transition-all duration-200 active:scale-95 ${
-                    isVideoOff
-                      ? "bg-red-500/20 text-red-500"
-                      : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                  }`}
-                >
-                  {isVideoOff ? <VideoOff size={22} /> : <Video size={22} />}
-                </button>
-
-                <div className="w-[1px] h-8 bg-zinc-800 mx-1"></div>
-
-                {/* End Call Button */}
-                <button
-                  onClick={handleEndCall}
-                  className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-red-500/30 flex items-center gap-2 active:scale-95"
-                >
-                  <PhoneOff size={20} />
-                  <span className="hidden sm:inline">Kết thúc</span>
-                </button>
-              </div>
-            </div>
+            )}
           </StreamTheme>
         </StreamCall>
       </StreamVideo>
+
+      {/* CSS MAGIC: Sửa lỗi VideoPreview không fit khung */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        /* Ép video preview lấp đầy container cha */
+        .video-preview-container .str-video__video-preview {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+          border-radius: 0 !important;
+        }
+        /* Loại bỏ các khoảng đệm mặc định của SDK */
+        .str-video__video-preview-container {
+          width: 100% !important;
+          height: 100% !important;
+          padding: 0 !important;
+        }
+        video {
+          object-fit: cover !important;
+        }
+      `}} />
     </div>
   );
 };
 
 export default VideoCallPage;
-
-const MainCall = () => {};

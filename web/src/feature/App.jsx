@@ -86,7 +86,9 @@ function App() {
 
       const myAccount = localStorage.getItem("my_account");
       const type = JSON.parse(myAccount).type;
-      navigate(`/app/${type}/incoming-call?from=${payload.from}`);
+      navigate(
+        `/app/${type}/incoming-call?from=${payload.from}&to=${payload.to}&callId=${payload.callId}`
+      );
     };
 
     const handleCancelCall = (payload) => {
@@ -96,17 +98,51 @@ function App() {
       const type = JSON.parse(myAccount).type;
       navigate(`/app/${type}/chat?conversationId=${payload.callId}`);
     };
+    const handleRejectCall = (payload) => {
+      console.log("📩 REJECT_CALL:", payload);
+
+      const myAccount = localStorage.getItem("my_account");
+      const type = JSON.parse(myAccount).type;
+      navigate(`/app/${type}/chat?conversationId=${payload.callId}`);
+    };
+
+    const handleAcceptCall = (payload) => {
+      console.log("📩 ACCEPT_CALL:", payload);
+
+      const myAccount = localStorage.getItem("my_account");
+      const type = JSON.parse(myAccount).type;
+      navigate(
+        `/app/${type}/video-call?callId=${payload.callId}&to=${payload.from}&from=${payload.to}`
+      );
+    };
+
+    const handleOutCall = (payload) => {
+      console.log("📩 OUT_CALL:", payload);
+
+      const myAccount = localStorage.getItem("my_account");
+      const type = JSON.parse(myAccount).type;
+      navigate(`/app/${type}/chat?conversationId=${payload.callId}`);
+    };
+
     socket.on("welcome", handleWelcome);
     socket.on("new_event_for_member", handleNewEventForMember);
     socket.on("new_message", handleNewMessage);
 
     socket.on("call:incoming", handleIncomingCall);
     socket.on("call:cancelled", handleCancelCall);
+    socket.on("call:rejected", handleRejectCall);
+    socket.on("call:accepted", handleAcceptCall);
+    socket.on("call:ended", handleOutCall);
 
     return () => {
       socket.off("welcome", handleWelcome);
       socket.off("new_event_for_member", handleNewEventForMember);
       socket.off("new_message", handleNewMessage);
+      socket.off("call:incoming", handleIncomingCall);
+      socket.off("call:cancelled", handleCancelCall);
+      socket.off("call:rejected", handleRejectCall);
+      socket.off("call:accepted", handleAcceptCall);
+      socket.off("call:ended", handleOutCall);
     };
   }, [navigate]);
 
