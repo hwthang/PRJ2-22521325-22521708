@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from "react";
-import { MessageSquare, Search, Trash2, ShieldAlert, Clock, User } from "lucide-react";
+import { MessageSquare, Search, Trash2, ShieldAlert, Clock, User, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
+import { base_url } from "../../../utils/api"; // Đảm bảo đường dẫn này đúng với dự án của bạn
 
 const DocumentFeedbackManager = ({ feedbacks = [], onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isDeleting, setIsDeleting] = useState(null); // Lưu ID feedback đang chờ xóa để hiện popup
+  const [loading, setLoading] = useState(false);
 
   const filteredFeedbacks = useMemo(() => {
     return feedbacks.filter((fb) => {
@@ -11,13 +14,43 @@ const DocumentFeedbackManager = ({ feedbacks = [], onRefresh }) => {
       const userName = fb.accountId?.displayName?.toLowerCase() || "";
       const commentText = fb.comment?.toLowerCase() || "";
       const email = fb.accountId?.email?.toLowerCase() || "";
-      
       return userName.includes(s) || commentText.includes(s) || email.includes(s);
     });
   }, [feedbacks, searchTerm]);
 
+  // Hàm xử lý xóa feedback qua API
+  const handleDelete = async (feedbackId) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${base_url}/api/comments/${feedbackId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          // Thêm token nếu API của bạn yêu cầu Authorization
+          // "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+      });
+
+      const json = await res.json();
+
+      if (res.ok && json.success) {
+        toast.success("Đã xóa bình luận thành công");
+        setIsDeleting(null);
+        if (onRefresh) onRefresh(); // Gọi hàm refresh để load lại dữ liệu từ cha
+      } else {
+        toast.error(json.message || "Không thể xóa bình luận");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Lỗi hệ thống khi xóa");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
+      {/* Search & Header */}
       <div className="p-5 bg-gray-50/50 border-b flex flex-col md:flex-row gap-4 justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-indigo-600 rounded-lg text-white">
@@ -41,6 +74,7 @@ const DocumentFeedbackManager = ({ feedbacks = [], onRefresh }) => {
         </div>
       </div>
 
+      {/* Table Content */}
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -59,11 +93,7 @@ const DocumentFeedbackManager = ({ feedbacks = [], onRefresh }) => {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       {item.accountId?.avatar?.path ? (
-                        <img 
-                          src={item.accountId.avatar.path} 
-                          alt="avatar" 
-                          className="h-9 w-9 rounded-full object-cover border border-gray-200"
-                        />
+                        <img src={item.accountId.avatar.path} alt="avatar" className="h-9 w-9 rounded-full object-cover border border-gray-200" />
                       ) : (
                         <div className="h-9 w-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold">
                           <User size={16} />
@@ -76,14 +106,11 @@ const DocumentFeedbackManager = ({ feedbacks = [], onRefresh }) => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-sm text-gray-600 max-w-xs break-words font-medium italic">
-                      "{item.comment}"
-                    </p>
+                    <p className="text-sm text-gray-600 max-w-xs break-words font-medium italic">"{item.comment}"</p>
                   </td>
                   <td className="px-6 py-4 text-[12px] text-gray-500">
                     <div className="flex items-center gap-1.5 font-medium">
-                      <Clock size={12} />
-                      {new Date(item.createdAt).toLocaleString("vi-VN")}
+                      <Clock size={12} /> {new Date(item.createdAt).toLocaleString("vi-VN")}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-center">
@@ -97,15 +124,10 @@ const DocumentFeedbackManager = ({ feedbacks = [], onRefresh }) => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" 
+                      <button
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                         title="Xóa bình luận"
-                        onClick={() => {
-                           if(window.confirm("Bạn có chắc chắn muốn xóa bình luận này?")) {
-                             // Logic xóa tại đây
-                             toast.info("Tính năng xóa đang được cập nhật");
-                           }
-                        }}
+                        onClick={() => setIsDeleting(item._id)} // Mở popup
                       >
                         <Trash2 size={18} />
                       </button>
@@ -115,14 +137,46 @@ const DocumentFeedbackManager = ({ feedbacks = [], onRefresh }) => {
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="px-6 py-20 text-center text-gray-400 italic font-medium">
-                  Chưa có góp ý (bình luận) nào cho tài liệu này.
-                </td>
+                <td colSpan="5" className="px-6 py-20 text-center text-gray-400 italic font-medium">Chưa có góp ý nào.</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* POPUP XÁC NHẬN XÓA (MODAL) */}
+      {isDeleting && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-500 mb-4">
+                <AlertTriangle size={32} />
+              </div>
+              <h4 className="text-xl font-bold text-gray-900">Xác nhận xóa?</h4>
+              <p className="text-gray-500 text-sm mt-2">
+                Hành động này sẽ xóa vĩnh viễn bình luận này và không thể khôi phục lại. Bạn có chắc chắn?
+              </p>
+            </div>
+
+            <div className="flex gap-3 mt-8">
+              <button
+                disabled={loading}
+                onClick={() => setIsDeleting(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition-all disabled:opacity-50"
+              >
+                Hủy
+              </button>
+              <button
+                disabled={loading}
+                onClick={() => handleDelete(isDeleting)}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 shadow-lg shadow-red-200 transition-all flex items-center justify-center gap-2"
+              >
+                {loading ? <Loader2 className="animate-spin" size={18} /> : "Xóa ngay"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
