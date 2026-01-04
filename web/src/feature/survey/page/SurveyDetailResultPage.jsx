@@ -150,14 +150,14 @@ const SurveyDetailResultPage = () => {
         </div>
 
         {/* Footer actions */}
-        <div className="mt-12 mb-20 flex justify-center">
+        {/* <div className="mt-12 mb-20 flex justify-center">
           <button
             onClick={() => window.print()}
             className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black shadow-lg hover:bg-black transition-all flex items-center gap-3"
           >
             Xuất báo cáo PDF
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   );
