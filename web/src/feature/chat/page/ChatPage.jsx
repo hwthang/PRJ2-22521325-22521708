@@ -48,6 +48,7 @@ const ChatPage = () => {
     try {
       setLoadingMessages(true);
       const res = await ConversationService.getMessages(id);
+      console.log(res)
       if (res.success) setMessages(res.messages || []);
     } catch (err) {
       console.error("Lỗi fetch tin nhắn:", err);
@@ -96,6 +97,7 @@ const ChatPage = () => {
         fileName: file.name
       });
     } catch (err) {
+      console.log(err)
       alert("Lỗi tải lên tệp");
     } finally {
       setIsUploading(false);

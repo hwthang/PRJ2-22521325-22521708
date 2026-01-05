@@ -262,7 +262,7 @@ class ConversationService {
        ]
      }
   ===================================================== */
-  async getMessages(conversationId, { limit = 20, page = 1 } = {}) {
+  async getMessages(conversationId, { limit = 1000, page = 1 } = {}) {
     const res = await fetch(
       `${this.baseUrl}/${conversationId}/messages?limit=${limit}&page=${page}`
     );

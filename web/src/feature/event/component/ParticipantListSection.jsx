@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Users, Mail, Clock, Phone, Briefcase, Search, CheckCircle2, UserCheck } from "lucide-react";
 import EventService from "../service/EventService";
+import { defAvatar } from "../../../core/assets/images";
 
 const ParticipantListSection = ({ eventId }) => {
   const [participants, setParticipants] = useState([]);
@@ -110,7 +111,7 @@ const ParticipantListSection = ({ eventId }) => {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <img 
-                        src={item.memberId?.accountId?.avatar?.path || "https://via.placeholder.com/40"} 
+                        src={item.memberId?.accountId?.avatar?.url || defAvatar} 
                         className="h-10 w-10 rounded-xl object-cover border-2 border-white shadow-sm"
                         alt="avatar"
                       />

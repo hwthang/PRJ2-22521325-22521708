@@ -58,7 +58,7 @@ class SurveyService {
     return json;
   };
 
- fetchSurveyForMember = async () => {
+  fetchSurveyForMember = async () => {
     try {
       // 1. Lấy tất cả khảo sát (đã được lọc theo ChapterId trong fetchAllSurveys)
       const allSurveys = await this.fetchAllSurveys();
@@ -73,18 +73,18 @@ class SurveyService {
       // 3. Kết hợp dữ liệu
       const combinedSurveys = allSurveys.map((survey) => {
         const isDone = doneIds.has(survey._id);
-        
+
         // Tìm thông tin ngày nộp từ danh sách doneSurveys nếu có
-        const doneInfo = isDone 
-          ? doneSurveys.find(s => s._id === survey._id) 
+        const doneInfo = isDone
+          ? doneSurveys.find((s) => s._id === survey._id)
           : null;
 
         return {
           ...survey,
           isDone: isDone,
-          // Nếu đã xong thì lấy ngày nộp (createdAt) từ bảng kết quả, 
+          // Nếu đã xong thì lấy ngày nộp (createdAt) từ bảng kết quả,
           // nếu chưa thì để null hoặc ngày tạo khảo sát
-          submittedAt: doneInfo ? doneInfo.createdAt : null 
+          submittedAt: doneInfo ? doneInfo.createdAt : null,
         };
       });
 
