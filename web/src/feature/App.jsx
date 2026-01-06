@@ -35,6 +35,7 @@ import ChatPage from "./chat/page/ChatPage";
 import VideoCallPage from "./video-call/VideoCallPage";
 import IncomingCallPage from "./video-call/IncomingCallPage";
 import { WaitingCallPage } from "./video-call/WaitingCallPage";
+import ChatBotPage from "./chatbot/ChatBotPage";
 
 function App() {
   // 🔹 AUTO CONNECT SOCKET nếu có accountId
@@ -169,6 +170,7 @@ function App() {
             <Route path="surveys" element={<SurveyListPage />} />
             <Route path="surveys/create" element={<CreateSurveyPage />} />
             <Route path="surveys/:id" element={<SurveyDetailPage />} />
+            <Route path="chatbot" element={<ChatBotPage />} />
           </Route>
 
           <Route path="chapter">
@@ -188,6 +190,7 @@ function App() {
             <Route path="incoming-call" element={<IncomingCallPage />} />
             <Route path="waiting-call" element={<WaitingCallPage />} />
             <Route path="video-call" element={<VideoCallPage />} />
+            <Route path="chatbot" element={<ChatBotPage />} />
           </Route>
 
           <Route path="member">
@@ -205,6 +208,7 @@ function App() {
             <Route path="video-call" element={<VideoCallPage />} />
             <Route path="waiting-call" element={<WaitingCallPage />} />
             <Route path="incoming-call" element={<IncomingCallPage />} />
+            <Route path="chatbot" element={<ChatBotPage />} />
           </Route>
 
           <Route path="events/:id" element={<EventDetailPage />} />

@@ -13,7 +13,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, Users, Image as ImageIcon } from "lucide-react-native";
 import ConversationService from "@/services/ConversationService";
 import AuthService from "@/services/AuthService";
-import defAvatar from "../../assets/images/avatar.png";
+import defAvatar from "../../../assets/images/avatar.png";
 
 const ChatDetailScreen = () => {
   const { id } = useLocalSearchParams();

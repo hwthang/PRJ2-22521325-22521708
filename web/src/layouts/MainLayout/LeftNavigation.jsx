@@ -9,7 +9,8 @@ import {
   ClipboardList,
   BarChart2,
   MessageCircle,
-  LogOut, // Import icon đăng xuất
+  LogOut,
+  BotMessageSquare, // Import icon đăng xuất
 } from "lucide-react";
 
 import NavItem from "../../core/components/Navigation/NavItem";
@@ -96,6 +97,13 @@ function LeftNavigation() {
           label={"Trò chuyện"}
           icon={<MessageCircle size={ICON_SIZE} />}
           path={`${role}/chat`}
+        />
+
+        <NavItem
+          role={["chapter", "member", "admin"]}
+          label={"Chatbot"}
+          icon={<BotMessageSquare size={ICON_SIZE} />}
+          path={`${role}/chatbot`}
         />
       </div>
 

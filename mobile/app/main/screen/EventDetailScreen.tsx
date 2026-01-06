@@ -11,6 +11,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -27,6 +28,8 @@ import {
   QrCode,
 } from "lucide-react-native";
 import EventService from "@/services/EventService";
+import AuthService from "@/services/AuthService"; // Đảm bảo import AuthService
+import { API_URL } from "@/services/Api";
 import {
   formatDateToDDMMYYYY,
   formatToHHMM,
@@ -34,9 +37,9 @@ import {
 } from "@/utils/date";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const defAvatar = require("../../assets/images/avatar.png");
+import defAvatar from "../../../assets/images/avatar.png";
 
-// Danh mục định nghĩa Tags với màu sắc tương ứng
+// ... (eventTopics giữ nguyên)
 const eventTopics: any = {
   volunteer: { label: "Tình nguyện", color: "#10b981" },
   blood_donation: { label: "Hiến máu", color: "#ef4444" },
@@ -108,19 +111,65 @@ const EventDetailScreen = () => {
 
       if (data) {
         setEvent(data);
-        const resCmt = await EventService.getComments(data.postId._id);
-        setComments(resCmt.data.comments || []);
+        fetchComments(data.postId._id);
       }
     } catch (error) {
-      console.error("Lỗi fetch:", error);
+      console.error("Lỗi fetch event:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchComments = async (postId: string) => {
+    try {
+      const resCmt = await EventService.getComments(postId);
+      setComments(resCmt.data.comments || []);
+    } catch (error) {
+      console.error("Lỗi fetch comments:", error);
     }
   };
 
   useEffect(() => {
     fetchEventData();
   }, [id]);
+
+  const handleSendComment = async () => {
+    if (!commentInput.trim() || isSending) return;
+
+    try {
+      setIsSending(true);
+      const myAccount = await AuthService.getMyAccount();
+
+      if (!myAccount?._id) {
+        Alert.alert("Thông báo", "Vui lòng đăng nhập để bình luận");
+        return;
+      }
+
+      const res = await fetch(`${API_URL}/api/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId: myAccount._id,
+          postId: event.postId._id,
+          comment: commentInput.trim(),
+          image: null,
+        }),
+      });
+
+      if (res.ok) {
+        setCommentInput("");
+        // Load lại danh sách bình luận
+        fetchComments(event.postId._id);
+      } else {
+        const json = await res.json();
+        console.error("Lỗi server:", json.message);
+      }
+    } catch (error) {
+      console.error("Lỗi gửi bình luận:", error);
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   const onScrollImage = (e: any) => {
     const slide = Math.ceil(
@@ -130,9 +179,7 @@ const EventDetailScreen = () => {
   };
 
   const handleScanQR = () => {
-    // Logic điều hướng quét mã
-    console.log("Mở Camera quét QR cho sự kiện:", event.name);
-    router.push('/screen/ScanQrScreen')
+    router.push("/main/screen/ScanQrScreen");
   };
 
   if (loading)
@@ -181,10 +228,15 @@ const EventDetailScreen = () => {
                 ))}
               </View>
             )}
+            <TouchableOpacity
+              style={styles.backFloatBtn}
+              onPress={() => router.back()}
+            >
+              <ChevronLeft size={24} color="#fff" />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.contentCard}>
-            {/* Hàng trạng thái và Likes */}
             <View style={styles.topRow}>
               <View
                 style={[
@@ -214,8 +266,8 @@ const EventDetailScreen = () => {
 
             <Text style={styles.title}>{event.name}</Text>
 
-            {/* Tags Section */}
-            {event.tags && event.tags.length > 0 && (
+            {/* Tags */}
+            {event.tags && (
               <View style={styles.tagContainer}>
                 {event.tags.map((tagKey: string) => {
                   const tagInfo = eventTopics[tagKey];
@@ -248,12 +300,6 @@ const EventDetailScreen = () => {
               </Text>
             </View>
             <View style={styles.infoRow}>
-              <Clock size={18} color="#64748b" />
-              <Text style={styles.infoText}>
-                Bắt đầu: {formatToHHMM(event.startedAt)}
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
               <MapPin size={18} color="#ef4444" />
               <Text style={styles.infoText}>
                 {event.venue || "Chưa có địa điểm"}
@@ -262,6 +308,7 @@ const EventDetailScreen = () => {
 
             <View style={styles.divider} />
 
+            {/* Mô tả */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Info size={18} color="#1e293b" />
@@ -283,6 +330,7 @@ const EventDetailScreen = () => {
               {comments.map((cmt) => (
                 <CommentItem key={cmt._id} cmt={cmt} />
               ))}
+
               <View style={styles.commentInputRow}>
                 <TextInput
                   style={styles.input}
@@ -291,31 +339,23 @@ const EventDetailScreen = () => {
                   onChangeText={setCommentInput}
                   multiline
                 />
-                <TouchableOpacity style={styles.sendBtn}>
-                  <Send size={18} color="#fff" />
+                <TouchableOpacity
+                  style={[styles.sendBtn, isSending && { opacity: 0.7 }]}
+                  onPress={handleSendComment}
+                  disabled={isSending}
+                >
+                  {isSending ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Send size={18} color="#fff" />
+                  )}
                 </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Ban tổ chức */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Users size={18} color="#1e293b" />
-                <Text style={styles.sectionTitle}>Ban tổ chức</Text>
-              </View>
-              <View style={styles.organizerBox}>
-                <Text style={styles.organizerName}>
-                  {event.chapterId?.name}
-                </Text>
-                <Text style={styles.organizerSub}>
-                  {event.chapterId?.affiliated}
-                </Text>
               </View>
             </View>
           </View>
         </ScrollView>
 
-        {/* Footer với nút Đăng ký và Quét QR */}
+        {/* Footer */}
         <View style={styles.footer}>
           {event.status === "running" && event.hadRegistered && (
             <TouchableOpacity style={styles.btnQR} onPress={handleScanQR}>
@@ -351,26 +391,20 @@ const EventDetailScreen = () => {
 export default EventDetailScreen;
 
 const styles = StyleSheet.create({
+  // ... (giữ nguyên styles của bạn và thêm các style bổ sung dưới đây)
   container: { flex: 1, backgroundColor: "#fff" },
   loading: { flex: 1, justifyContent: "center", alignItems: "center" },
-  fixedHeader: {
-    flexDirection: "row",
+  backFloatBtn: {
+    position: "absolute",
+    top: 50,
+    left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    height: 56,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1e293b",
-    flex: 1,
-    textAlign: "center",
-  },
-  backBtn: { width: 40 },
   sliderContainer: { width: SCREEN_WIDTH, height: 260 },
   bannerImage: { width: SCREEN_WIDTH, height: 260 },
   pagination: {
@@ -494,9 +528,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginLeft: 10,
   },
-  organizerBox: { padding: 16, backgroundColor: "#f8fafc", borderRadius: 12 },
-  organizerName: { fontSize: 16, fontWeight: "700", color: "#2563eb" },
-  organizerSub: { fontSize: 14, color: "#64748b" },
   footer: {
     paddingHorizontal: 16,
     paddingBottom: Platform.OS === "ios" ? 30 : 15,

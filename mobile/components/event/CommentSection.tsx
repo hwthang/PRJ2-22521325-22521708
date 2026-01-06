@@ -14,6 +14,8 @@ import React, { useState } from "react";
 import { Send, MessageCircle } from "lucide-react-native";
 import { formatRelativeTime } from "@/utils/date";
 import EventService from "@/services/EventService";
+import { API_URL } from "@/services/Api";
+import AuthService from "@/services/AuthService";
 
 const defAvatar = require("../../assets/images/avatar.png");
 
@@ -23,21 +25,60 @@ interface CommentSectionProps {
   onCommentAdded: () => void; // Callback để load lại data sau khi cmt
 }
 
-const CommentSection = ({ postId, comments, onCommentAdded }: CommentSectionProps) => {
+const CommentSection = ({
+  postId,
+  comments,
+  onCommentAdded,
+}: CommentSectionProps) => {
   const [newComment, setNewComment] = useState("");
   const [sending, setSending] = useState(false);
 
   const handleSendComment = async () => {
-    if (!newComment.trim()) return;
-    
+    // 1. Kiểm tra nhanh nội dung trống hoặc đang trong quá trình gửi
+    if (!newComment.trim() || sending) return;
+
     try {
       setSending(true);
-      // Giả sử service của bạn có hàm postComment
-      // await EventService.postComment(postId, { comment: newComment });
-      setNewComment("");
-      onCommentAdded(); // Gọi hàm fetch lại dữ liệu ở màn hình cha
+
+      // 2. Lấy thông tin tài khoản hiện tại
+      const myAccount = await AuthService.getMyAccount();
+      if (!myAccount?._id) {
+        console.error("Không tìm thấy thông tin tài khoản");
+        return;
+      }
+      console.log({
+        accountId: myAccount._id,
+        postId,
+        comment: newComment.trim(), // Loại bỏ khoảng trắng thừa
+        image: null,
+      });
+      // 3. Thực hiện gọi API POST
+      const res = await fetch(`${API_URL}/api/comments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          accountId: myAccount._id,
+          postId,
+          comment: newComment.trim(), // Loại bỏ khoảng trắng thừa
+          image: null,
+        }),
+      });
+
+      const json = await res.json();
+
+      // 4. Kiểm tra phản hồi từ server
+      if (res.ok) {
+        setNewComment(""); // Xóa nội dung input sau khi gửi thành công
+        if (onCommentAdded) {
+          onCommentAdded(); // Callback để load lại danh sách bình luận
+        }
+      } else {
+        console.error("Server trả về lỗi:", json.message || "Không xác định");
+      }
     } catch (error) {
-      console.error("Lỗi gửi bình luận:", error);
+      console.error("Lỗi kết nối mạng khi gửi bình luận:", error);
     } finally {
       setSending(false);
     }
@@ -46,13 +87,19 @@ const CommentSection = ({ postId, comments, onCommentAdded }: CommentSectionProp
   const renderCommentItem = ({ item }: { item: any }) => (
     <View style={styles.commentItem}>
       <Image
-        source={item.accountId?.avatar?.url ? { uri: item.accountId.avatar.url } : defAvatar}
+        source={
+          item.accountId?.avatar?.url
+            ? { uri: item.accountId.avatar.url }
+            : defAvatar
+        }
         style={styles.commentAvatar}
       />
       <View style={styles.commentContent}>
         <View style={styles.commentHeader}>
           <Text style={styles.commentUser}>{item.accountId?.displayName}</Text>
-          <Text style={styles.commentTime}>{formatRelativeTime(item.createdAt)}</Text>
+          <Text style={styles.commentTime}>
+            {formatRelativeTime(item.createdAt)}
+          </Text>
         </View>
         <Text style={styles.commentText}>{item.comment}</Text>
       </View>
@@ -71,7 +118,7 @@ const CommentSection = ({ postId, comments, onCommentAdded }: CommentSectionProp
         <View style={styles.listWrapper}>
           {comments.map((item) => (
             <React.Fragment key={item._id}>
-                {renderCommentItem({ item })}
+              {renderCommentItem({ item })}
             </React.Fragment>
           ))}
         </View>
@@ -88,9 +135,9 @@ const CommentSection = ({ postId, comments, onCommentAdded }: CommentSectionProp
           onChangeText={setNewComment}
           multiline
         />
-        <TouchableOpacity 
-          style={[styles.sendBtn, !newComment.trim() && styles.sendBtnDisabled]} 
-          onPress={handleSendComment}
+        <TouchableOpacity
+          style={[styles.sendBtn, !newComment.trim() && styles.sendBtnDisabled]}
+          onPress={() => handleSendComment()}
           disabled={sending || !newComment.trim()}
         >
           {sending ? (

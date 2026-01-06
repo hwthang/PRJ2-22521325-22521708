@@ -25,7 +25,7 @@ const EventItem = ({ data }: { data: any }) => {
   const status = getStatus();
 
   return (
-    <Link href={`/screen/EventDetailScreen?id=${data?._id}`} asChild>
+    <Link href={`/main/screen/EventDetailScreen?id=${data?._id}`} asChild>
       <TouchableOpacity style={styles.card}>
         <View style={styles.imageContainer}>
           <Image

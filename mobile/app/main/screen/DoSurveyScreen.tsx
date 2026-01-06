@@ -8,20 +8,23 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { 
-  ChevronLeft, 
-  ClipboardEdit, 
-  Clock, 
-  Building2, 
+import {
+  ClipboardEdit,
+  Clock,
+  Building2,
   Send,
   CheckCircle2,
-  Circle
+  Circle,
+  ChevronLeft,
 } from "lucide-react-native";
 import { API_URL } from "@/services/Api";
 import { formatDateToDDMMYYYY, formatToHHMM } from "@/utils/date";
+import AuthService from "@/services/AuthService";
 
 const DoSurveyScreen = () => {
   const { id } = useLocalSearchParams();
@@ -31,6 +34,9 @@ const DoSurveyScreen = () => {
   const [questions, setQuestions] = useState<any[]>([]);
   const [answers, setAnswers] = useState<{ [key: string]: any }>({});
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Giả sử memberId lấy từ storage hoặc context. Ở đây tôi để fix theo data bạn cung cấp.
 
   const fetchSurvey = async (surveyId: any) => {
     try {
@@ -56,7 +62,6 @@ const DoSurveyScreen = () => {
     fetchSurvey(id);
   }, [id]);
 
-  // Xử lý thay đổi câu trả lời
   const handleAnswer = (questionId: string, value: any, type: string) => {
     setAnswers((prev) => {
       if (type === "multiple") {
@@ -70,20 +75,93 @@ const DoSurveyScreen = () => {
     });
   };
 
-  const handleSubmit = () => {
-    console.log("Dữ liệu khảo sát hoàn tất:", answers);
-    // SurveyService.submitSurvey(id, answers)...
+  // Hàm gọi API trả lời cho từng câu hỏi
+  const answerOneQuestion = async (data: any) => {
+    const res = await fetch(`${API_URL}/api/answers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+    return await res.json();
   };
 
-  if (loading) return <View style={styles.center}><Text>Đang tải khảo sát...</Text></View>;
-  if (!surveyData) return <View style={styles.center}><Text>Không có dữ liệu</Text></View>;
+  const handleSubmit = async () => {
+    const myAccount = await AuthService.getMyAccount();
+    const memberId = myAccount.member._id;
+    // 1. Kiểm tra xem đã trả lời hết câu hỏi chưa
+    if (Object.keys(answers).length < questions.length) {
+      Alert.alert("Thông báo", "Vui lòng hoàn thành tất cả các câu hỏi.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      // 2. Tạo mảng các payload cần gửi
+      const payloads = questions.map((q) => {
+        const value = answers[q._id];
+        return {
+          questionId: q._id,
+          memberId: memberId,
+          text: q.type === "text" ? value : "",
+          // Nếu là single thì bọc value vào mảng, nếu multiple thì value đã là mảng
+          options:
+            q.type === "text" ? [""] : Array.isArray(value) ? value : [value],
+        };
+      });
+
+      // 3. Gọi API lần lượt (hoặc song song bằng Promise.all)
+      // Sử dụng for...of nếu bạn muốn gửi tuần tự để tránh quá tải server
+      for (const payload of payloads) {
+        await answerOneQuestion(payload);
+      }
+
+      Alert.alert("Thành công", "Bạn đã gửi khảo sát thành công!", [
+        { text: "Đóng", onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      console.error("Lỗi khi gửi kết quả:", error);
+      Alert.alert("Lỗi", "Không thể gửi kết quả khảo sát. Vui lòng thử lại.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading)
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text style={{ marginTop: 10 }}>Đang tải khảo sát...</Text>
+      </View>
+    );
+
+  if (!surveyData)
+    return (
+      <View style={styles.center}>
+        <Text>Không có dữ liệu</Text>
+      </View>
+    );
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <ChevronLeft size={24} color="#1e293b" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Làm khảo sát</Text>
+          <View style={{ width: 24 }} />
+        </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           <View style={styles.infoCard}>
             <Text style={styles.surveyName}>{surveyData.name}</Text>
             <View style={styles.row}>
@@ -93,7 +171,8 @@ const DoSurveyScreen = () => {
             <View style={styles.row}>
               <Clock size={16} color="#ef4444" />
               <Text style={styles.timeText}>
-                Hạn: {formatToHHMM(surveyData.endedAt)} - {formatDateToDDMMYYYY(surveyData.endedAt)}
+                Hạn: {formatToHHMM(surveyData.endedAt)} -{" "}
+                {formatDateToDDMMYYYY(surveyData.endedAt)}
               </Text>
             </View>
           </View>
@@ -105,10 +184,17 @@ const DoSurveyScreen = () => {
 
           {questions.map((q, index) => (
             <View key={q._id} style={styles.questionCard}>
-              <Text style={styles.questionLabel}>Câu {index + 1} ({q.type === 'text' ? 'Tự luận' : q.type === 'single' ? 'Chọn một' : 'Chọn nhiều'})</Text>
+              <Text style={styles.questionLabel}>
+                Câu {index + 1} (
+                {q.type === "text"
+                  ? "Tự luận"
+                  : q.type === "single"
+                  ? "Chọn một"
+                  : "Chọn nhiều"}
+                )
+              </Text>
               <Text style={styles.questionText}>{q.question}</Text>
 
-              {/* Dạng nhập văn bản */}
               {q.type === "text" && (
                 <TextInput
                   style={styles.textInput}
@@ -119,18 +205,21 @@ const DoSurveyScreen = () => {
                 />
               )}
 
-              {/* Dạng chọn một hoặc chọn nhiều */}
               {(q.type === "single" || q.type === "multiple") && (
                 <View style={styles.optionsContainer}>
                   {q.options.map((option: string, idx: number) => {
-                    const isSelected = q.type === "multiple" 
-                      ? answers[q._id]?.includes(option)
-                      : answers[q._id] === option;
+                    const isSelected =
+                      q.type === "multiple"
+                        ? answers[q._id]?.includes(option)
+                        : answers[q._id] === option;
 
                     return (
                       <TouchableOpacity
                         key={idx}
-                        style={[styles.optionItem, isSelected && styles.optionSelected]}
+                        style={[
+                          styles.optionItem,
+                          isSelected && styles.optionSelected,
+                        ]}
                         onPress={() => handleAnswer(q._id, option, q.type)}
                       >
                         {isSelected ? (
@@ -138,7 +227,12 @@ const DoSurveyScreen = () => {
                         ) : (
                           <Circle size={20} color="#cbd5e1" />
                         )}
-                        <Text style={[styles.optionText, isSelected && styles.optionTextActive]}>
+                        <Text
+                          style={[
+                            styles.optionText,
+                            isSelected && styles.optionTextActive,
+                          ]}
+                        >
                           {option}
                         </Text>
                       </TouchableOpacity>
@@ -149,9 +243,19 @@ const DoSurveyScreen = () => {
             </View>
           ))}
 
-          <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-            <Send size={20} color="#fff" />
-            <Text style={styles.submitBtnText}>Gửi kết quả</Text>
+          <TouchableOpacity
+            style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
+            onPress={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Send size={20} color="#fff" />
+                <Text style={styles.submitBtnText}>Gửi kết quả</Text>
+              </>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -184,11 +288,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e2e8f0",
   },
-  surveyName: { fontSize: 18, fontWeight: "800", color: "#1e293b", marginBottom: 12 },
+  surveyName: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1e293b",
+    marginBottom: 12,
+  },
   row: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
   subText: { fontSize: 14, color: "#64748b" },
   timeText: { fontSize: 14, color: "#ef4444", fontWeight: "500" },
-  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1e293b" },
   questionCard: {
     backgroundColor: "#fff",
@@ -200,8 +314,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
   },
-  questionLabel: { fontSize: 12, fontWeight: "700", color: "#2563eb", marginBottom: 4 },
-  questionText: { fontSize: 16, color: "#1e293b", fontWeight: "600", marginBottom: 16 },
+  questionLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#2563eb",
+    marginBottom: 4,
+  },
+  questionText: {
+    fontSize: 16,
+    color: "#1e293b",
+    fontWeight: "600",
+    marginBottom: 16,
+  },
   textInput: {
     backgroundColor: "#f8fafc",
     borderWidth: 1,

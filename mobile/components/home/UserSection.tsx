@@ -37,7 +37,7 @@ const UserSection = ({ data }: { data: any }) => {
 
       {/* Nút Sửa ở góc phải */}
       <View style={styles.editWrapper}>
-        <Link href={`/screen/EditProfileScreen?id=${data?._id}`} asChild>
+        <Link href={`/main/screen/EditProfileScreen?id=${data?._id}`} asChild>
           <TouchableOpacity hitSlop={20}>
             <Edit2 color="#fff" size={20} opacity={0.8} />
           </TouchableOpacity>

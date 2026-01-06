@@ -1,5 +1,5 @@
-import { FlatList, StyleSheet, Text, View, SafeAreaView } from "react-native";
-import React, { useEffect, useState, useMemo } from "react";
+import { FlatList, StyleSheet, Text, View, SafeAreaView, RefreshControl } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
 import EventService from "@/services/EventService";
 import EventItem from "@/components/home/EventItem";
 import EventSearchBar from "@/components/event/EventSearchBar";
@@ -7,6 +7,9 @@ import EventSearchBar from "@/components/event/EventSearchBar";
 const EventScreen = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<any[]>([]);
+  
+  // 1. Khởi tạo state refreshing
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchEvents = async () => {
     const res = await EventService.fetchAllEventForMember();
@@ -19,10 +22,21 @@ const EventScreen = () => {
     fetchEvents();
   }, []);
 
+  // 2. Định nghĩa hàm onRefresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchEvents();
+    } catch (error) {
+      console.error("Lỗi khi làm mới dữ liệu:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
   const handleFilter = ({ search, status, tag }: { search: string; status: string; tag: string }) => {
     let result = [...events];
 
-    // 1. Lọc theo Text (Tên hoặc Địa điểm)
     if (search) {
       const s = search.toLowerCase();
       result = result.filter(
@@ -30,12 +44,10 @@ const EventScreen = () => {
       );
     }
 
-    // 2. Lọc theo Tag
     if (tag) {
       result = result.filter((e) => e.tags?.includes(tag));
     }
 
-    // 3. Lọc theo Trạng thái (Logic dựa trên thời gian)
     if (status && status !== "all") {
       const now = new Date();
       result = result.filter((e) => {
@@ -66,6 +78,17 @@ const EventScreen = () => {
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => <EventItem data={item} />}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+          
+          // 3. Tích hợp RefreshControl vào FlatList
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh} 
+              colors={["#2563eb"]} // Màu cho Android
+              tintColor="#2563eb"    // Màu cho iOS
+            />
+          }
+          
           ListEmptyComponent={
             <Text style={styles.emptyText}>Không tìm thấy sự kiện phù hợp</Text>
           }

@@ -9,5 +9,21 @@ class MemberService {
 
     return json
   }
+
+  updateMemberById = async (id: any, data: any) => {
+    const myAccount = await AuthService.getMyAccount()
+    const res = await fetch(`${API_URL}/api/members/${myAccount.member._id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      }
+    );
+    const json = await res.json();
+
+    return json
+  }
 }
 export default new MemberService()

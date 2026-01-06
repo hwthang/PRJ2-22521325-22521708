@@ -9,7 +9,7 @@ const SurveyItem = ({ data }: { data: any }) => {
     <TouchableOpacity
       style={styles.card}
       activeOpacity={0.7}
-      onPress={() => router.push(`/screen/SurveyResultScreen?id=${data?._id}`)}
+      onPress={() => router.push(`/main/screen/SurveyResultScreen?id=${data?._id}`)}
     >
       {/* Icon đại diện cho Khảo sát */}
       <View style={styles.iconContainer}>

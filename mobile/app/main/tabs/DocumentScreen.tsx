@@ -5,8 +5,9 @@ import {
   FlatList,
   SafeAreaView,
   ActivityIndicator,
+  RefreshControl, // 1. Import RefreshControl
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react"; // 2. Import useCallback
 import DocumentService from "@/services/DocumentService";
 import DocumentItem from "@/components/document/DocumentItem";
 import DocumentSearchBar from "@/components/document/DocumentSearchBar";
@@ -15,12 +16,14 @@ const DocumentScreen = () => {
   const [documents, setDocuments] = useState<any[]>([]);
   const [filteredDocs, setFilteredDocs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // 3. State quản lý refresh
 
-  const fetchDocuments = async () => {
-    setLoading(true);
+  const fetchDocuments = async (isRefreshing = false) => {
+    // Nếu là refresh thì không hiện loading spinner chính giữa màn hình
+    if (!isRefreshing) setLoading(true);
+    
     try {
       const res = await DocumentService.fetchAllDocuments();
-      // Giả sử API trả về res.data.documents như console.log của bạn
       const data = res?.data?.documents || [];
       setDocuments(data);
       setFilteredDocs(data);
@@ -28,6 +31,7 @@ const DocumentScreen = () => {
       console.error("Lỗi fetch documents:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false); // Tắt spinner refresh
     }
   };
 
@@ -35,7 +39,12 @@ const DocumentScreen = () => {
     fetchDocuments();
   }, []);
 
-  // Logic lọc dữ liệu
+  // 4. Hàm xử lý khi kéo xuống để refresh
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchDocuments(true);
+  }, []);
+
   const handleFilter = ({
     search,
     types,
@@ -45,7 +54,6 @@ const DocumentScreen = () => {
   }) => {
     let result = [...documents];
 
-    // 1. Lọc theo chữ (Tên tài liệu hoặc Mã docCode)
     if (search) {
       const query = search.toLowerCase();
       result = result.filter(
@@ -55,7 +63,6 @@ const DocumentScreen = () => {
       );
     }
 
-    // 2. Lọc theo nhiều loại tài liệu (Multi-select)
     if (types && types.length > 0) {
       result = result.filter((doc) => types.includes(doc.type));
     }
@@ -65,7 +72,6 @@ const DocumentScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Thanh tìm kiếm và lọc */}
       <DocumentSearchBar onFilterChange={handleFilter} />
 
       <View style={styles.content}>
@@ -86,6 +92,15 @@ const DocumentScreen = () => {
             renderItem={({ item }) => <DocumentItem data={item} />}
             contentContainerStyle={styles.listPadding}
             showsVerticalScrollIndicator={false}
+            // 5. Thêm RefreshControl vào FlatList
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={["#2563eb"]} // Android
+                tintColor="#2563eb"   // iOS
+              />
+            }
             ListEmptyComponent={
               <View style={styles.emptyBox}>
                 <Text style={styles.emptyText}>
@@ -103,6 +118,7 @@ const DocumentScreen = () => {
 export default DocumentScreen;
 
 const styles = StyleSheet.create({
+  // ... Styles của bạn giữ nguyên
   container: {
     flex: 1,
     backgroundColor: "#f8fafc",

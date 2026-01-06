@@ -69,6 +69,18 @@ class SurveyService {
     console.log(memberResult);
     return memberResult;
   }
+
+  answerQuestion = async (data: any) => {
+    const res = await fetch(`${API_URL}/api/answers`, {
+      method: "POST", headers: {
+        "Content-Type": "application/json"
+      }, body: JSON.stringify(data)
+    })
+
+    const json = await res.json()
+
+    console.log(json)
+  }
 }
 
 export default new SurveyService()

@@ -1,8 +1,8 @@
-import { StyleSheet} from "react-native";
+import { StyleSheet } from "react-native";
 import React from "react";
 import { Stack } from "expo-router";
 import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
-import HeaderBar from "@/components/layout/HeaderBar";
+
 
 const toastConfig = {
   success: (props: any) => (
@@ -75,42 +75,12 @@ const RootLayout = () => {
           }}
         />
         <Stack.Screen
-          name="tabs"
+          name="main"
           options={{
             headerShown: false,
           }}
         />
-        <Stack.Screen
-          name="screen/ChatScreen"
-          options={{
-            headerShown: false,
-          }}
-        />
-         <Stack.Screen
-          name="screen/ChatDetailScreen"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="screen/EventDetailScreen"
-          options={{
-            header:()=><HeaderBar title="Chi tiết sự kiện"/>
-          }}
-        />
-        <Stack.Screen
-          name="screen/SurveyResultScreen"
-          options={{
-            header:()=><HeaderBar title="Chi tiết khảo sát"/>
-          }}
-        />
-         <Stack.Screen
-          name="screen/DoSurveyScreen"
-          options={{
-            header:()=><HeaderBar title="Làm khảo sát"/>
-          }}
-        />
-        
+       
       </Stack>
       <Toast config={toastConfig} />
     </>

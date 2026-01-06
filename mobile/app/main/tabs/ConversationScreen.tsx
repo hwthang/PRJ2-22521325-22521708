@@ -15,7 +15,7 @@ import { Search, MessageSquareDashed } from "lucide-react-native";
 import ConversationService from "@/services/ConversationService";
 import AuthService from "@/services/AuthService";
 import ConversationItem from "@/components/conversation/ConversationItem";
-import defAvatar from "../../assets/images/avatar.png";
+import defAvatar from "../../../assets/images/avatar.png";
 
 const ConversationScreen = () => {
   const router = useRouter();
@@ -105,7 +105,7 @@ const ConversationScreen = () => {
                 currentUserId={myId}
                 onPress={() =>
                   router.push({
-                    pathname: "/screen/ChatScreen",
+                    pathname: "/main/screen/ChatScreen",
                     params: {
                       conversationId: item._id,
                       title: displayTitle,

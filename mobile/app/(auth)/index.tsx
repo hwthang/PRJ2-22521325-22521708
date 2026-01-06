@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AuthService from "@/services/AuthService";
 import Toast from "react-native-toast-message";
+import SocketManager from "@/utils/SocketManager";
 
 const LoginScreen = () => {
   const [account, setAccount] = useState("");
@@ -24,7 +25,8 @@ const LoginScreen = () => {
     const res = await AuthService.login({ account, password });
     console.log(res);
     if (res.canAccess) {
-      router.replace("/tabs/HomeScreen");
+     
+      router.replace("/main/tabs/HomeScreen");
     } else {
       Toast.show({
         type: "error",
