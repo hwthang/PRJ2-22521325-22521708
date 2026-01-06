@@ -93,7 +93,7 @@ function LeftNavigation() {
         /> */}
 
         <NavItem
-          role={["chapter", "member"]}
+          role={["chapter", "member", "admin"]}
           label={"Trò chuyện"}
           icon={<MessageCircle size={ICON_SIZE} />}
           path={`${role}/chat`}

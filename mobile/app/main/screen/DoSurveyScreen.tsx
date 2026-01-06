@@ -10,34 +10,35 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Dimensions,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-  ClipboardEdit,
-  Clock,
-  Building2,
   Send,
   CheckCircle2,
-  Circle,
   ChevronLeft,
+  ChevronRight,
+  AlertCircle,
 } from "lucide-react-native";
 import { API_URL } from "@/services/Api";
-import { formatDateToDDMMYYYY, formatToHHMM } from "@/utils/date";
 import AuthService from "@/services/AuthService";
+
+const { width } = Dimensions.get("window");
 
 const DoSurveyScreen = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
+  // States
   const [surveyData, setSurveyData] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<{ [key: string]: any }>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Giả sử memberId lấy từ storage hoặc context. Ở đây tôi để fix theo data bạn cung cấp.
-
+  // 1. Tải dữ liệu khảo sát
   const fetchSurvey = async (surveyId: any) => {
     try {
       setLoading(true);
@@ -46,13 +47,14 @@ const DoSurveyScreen = () => {
 
       if (json.data) {
         setSurveyData(json.data.survey);
+        // Chuyển đổi object câu hỏi thành mảng
         const qArray = Object.keys(json.data.survey)
           .filter((key) => !isNaN(Number(key)))
           .map((key) => json.data.survey[key]);
         setQuestions(qArray);
       }
     } catch (error) {
-      console.error("Lỗi fetch khảo sát:", error);
+      Alert.alert("Lỗi", "Không thể tải dữ liệu khảo sát.");
     } finally {
       setLoading(false);
     }
@@ -62,68 +64,82 @@ const DoSurveyScreen = () => {
     fetchSurvey(id);
   }, [id]);
 
+  // 2. Hàm xử lý lưu câu trả lời (Lưu INDEX cho trắc nghiệm)
   const handleAnswer = (questionId: string, value: any, type: string) => {
     setAnswers((prev) => {
+      const currentVal = prev[questionId];
       if (type === "multiple") {
-        const currentAnswers = (prev[questionId] as string[]) || [];
-        const newAnswers = currentAnswers.includes(value)
-          ? currentAnswers.filter((i) => i !== value)
-          : [...currentAnswers, value];
-        return { ...prev, [questionId]: newAnswers };
+        const currentArr = Array.isArray(currentVal) ? currentVal : [];
+        // value lúc này là index (number)
+        const newArr = currentArr.includes(value)
+          ? currentArr.filter((i) => i !== value)
+          : [...currentArr, value];
+        return { ...prev, [questionId]: newArr };
       }
+      // Đối với text: value là string | Đối với single: value là index (number)
       return { ...prev, [questionId]: value };
     });
   };
 
-  // Hàm gọi API trả lời cho từng câu hỏi
-  const answerOneQuestion = async (data: any) => {
-    const res = await fetch(`${API_URL}/api/answers`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-    return await res.json();
+  // 3. Kiểm tra trạng thái hoàn thành của câu hỏi hiện tại
+  const isCurrentQuestionAnswered = () => {
+    const currentQ = questions[currentIndex];
+    if (!currentQ) return false;
+    const ans = answers[currentQ._id];
+
+    if (currentQ.type === "text") {
+      return ans && ans.trim().length > 0;
+    }
+    // Dùng check undefined/null vì index có thể là 0 (falsy value)
+    if (currentQ.type === "multiple") {
+      return ans && ans.length > 0;
+    }
+    return ans !== undefined && ans !== null; 
   };
 
+  // 4. Gửi kết quả
   const handleSubmit = async () => {
-    const myAccount = await AuthService.getMyAccount();
-    const memberId = myAccount.member._id;
-    // 1. Kiểm tra xem đã trả lời hết câu hỏi chưa
-    if (Object.keys(answers).length < questions.length) {
-      Alert.alert("Thông báo", "Vui lòng hoàn thành tất cả các câu hỏi.");
-      return;
+    if (!isCurrentQuestionAnswered()) {
+      return Alert.alert("Thông báo", "Vui lòng hoàn thành câu hỏi cuối cùng.");
     }
+
+    const myAccount = await AuthService.getMyAccount();
+    const memberId = myAccount?.member?._id;
+    if (!memberId) return Alert.alert("Lỗi", "Vui lòng đăng nhập lại.");
 
     try {
       setSubmitting(true);
 
-      // 2. Tạo mảng các payload cần gửi
       const payloads = questions.map((q) => {
         const value = answers[q._id];
         return {
           questionId: q._id,
           memberId: memberId,
           text: q.type === "text" ? value : "",
-          // Nếu là single thì bọc value vào mảng, nếu multiple thì value đã là mảng
-          options:
-            q.type === "text" ? [""] : Array.isArray(value) ? value : [value],
+          // Lưu ý: value lúc này đã là index (số)
+          options: q.type === "text" ? [""] : Array.isArray(value) ? value : [value],
         };
       });
 
-      // 3. Gọi API lần lượt (hoặc song song bằng Promise.all)
-      // Sử dụng for...of nếu bạn muốn gửi tuần tự để tránh quá tải server
-      for (const payload of payloads) {
-        await answerOneQuestion(payload);
-      }
+      console.log("=== PAYLOAD GỬI ĐI (INDEX) ===", JSON.stringify(payloads, null, 2));
+
+      await Promise.all(
+        payloads.map((payload, index) => {
+          console.log(`=> Gửi câu ${index + 1}:`, payload);
+          return fetch(`${API_URL}/api/answers`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }).then(res => res.json());
+        })
+      );
 
       Alert.alert("Thành công", "Bạn đã gửi khảo sát thành công!", [
         { text: "Đóng", onPress: () => router.back() },
       ]);
     } catch (error) {
-      console.error("Lỗi khi gửi kết quả:", error);
-      Alert.alert("Lỗi", "Không thể gửi kết quả khảo sát. Vui lòng thử lại.");
+      console.error("Lỗi submit:", error);
+      Alert.alert("Lỗi", "Không thể gửi kết quả.");
     } finally {
       setSubmitting(false);
     }
@@ -133,16 +149,13 @@ const DoSurveyScreen = () => {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={{ marginTop: 10 }}>Đang tải khảo sát...</Text>
+        <Text style={styles.loadingText}>Đang tải câu hỏi...</Text>
       </View>
     );
 
-  if (!surveyData)
-    return (
-      <View style={styles.center}>
-        <Text>Không có dữ liệu</Text>
-      </View>
-    );
+  const currentQuestion = questions[currentIndex];
+  const progress = questions.length > 0 ? (currentIndex + 1) / questions.length : 0;
+  const canGoNext = isCurrentQuestionAnswered();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -150,114 +163,102 @@ const DoSurveyScreen = () => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <ChevronLeft size={24} color="#1e293b" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Làm khảo sát</Text>
-          <View style={{ width: 24 }} />
+        {/* Thanh tiến trình */}
+        <View style={styles.progressContainer}>
+          <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
         </View>
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          <View style={styles.infoCard}>
-            <Text style={styles.surveyName}>{surveyData.name}</Text>
-            <View style={styles.row}>
-              <Building2 size={16} color="#64748b" />
-              <Text style={styles.subText}>{surveyData.chapterId?.name}</Text>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          <View style={styles.headerInfo}>
+            <View>
+              <Text style={styles.stepText}>CÂU HỎI {currentIndex + 1} / {questions.length}</Text>
+              <Text style={styles.surveyName} numberOfLines={1}>{surveyData?.name}</Text>
             </View>
-            <View style={styles.row}>
-              <Clock size={16} color="#ef4444" />
-              <Text style={styles.timeText}>
-                Hạn: {formatToHHMM(surveyData.endedAt)} -{" "}
-                {formatDateToDDMMYYYY(surveyData.endedAt)}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.sectionHeader}>
-            <ClipboardEdit size={20} color="#2563eb" />
-            <Text style={styles.sectionTitle}>Nội dung khảo sát</Text>
-          </View>
-
-          {questions.map((q, index) => (
-            <View key={q._id} style={styles.questionCard}>
-              <Text style={styles.questionLabel}>
-                Câu {index + 1} (
-                {q.type === "text"
-                  ? "Tự luận"
-                  : q.type === "single"
-                  ? "Chọn một"
-                  : "Chọn nhiều"}
-                )
-              </Text>
-              <Text style={styles.questionText}>{q.question}</Text>
-
-              {q.type === "text" && (
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Nhập câu trả lời..."
-                  multiline
-                  value={answers[q._id] || ""}
-                  onChangeText={(text) => handleAnswer(q._id, text, "text")}
-                />
-              )}
-
-              {(q.type === "single" || q.type === "multiple") && (
-                <View style={styles.optionsContainer}>
-                  {q.options.map((option: string, idx: number) => {
-                    const isSelected =
-                      q.type === "multiple"
-                        ? answers[q._id]?.includes(option)
-                        : answers[q._id] === option;
-
-                    return (
-                      <TouchableOpacity
-                        key={idx}
-                        style={[
-                          styles.optionItem,
-                          isSelected && styles.optionSelected,
-                        ]}
-                        onPress={() => handleAnswer(q._id, option, q.type)}
-                      >
-                        {isSelected ? (
-                          <CheckCircle2 size={20} color="#2563eb" />
-                        ) : (
-                          <Circle size={20} color="#cbd5e1" />
-                        )}
-                        <Text
-                          style={[
-                            styles.optionText,
-                            isSelected && styles.optionTextActive,
-                          ]}
-                        >
-                          {option}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
-          ))}
-
-          <TouchableOpacity
-            style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
-            onPress={handleSubmit}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Send size={20} color="#fff" />
-                <Text style={styles.submitBtnText}>Gửi kết quả</Text>
-              </>
+            {!canGoNext && (
+              <View style={styles.badgeRequired}>
+                <AlertCircle size={12} color="#f59e0b" />
+                <Text style={styles.badgeText}>Bắt buộc</Text>
+              </View>
             )}
-          </TouchableOpacity>
+          </View>
+
+          <View style={styles.questionContainer}>
+            <Text style={styles.questionText}>{currentQuestion?.question}</Text>
+
+            {/* Render câu hỏi dạng TEXT */}
+            {currentQuestion?.type === "text" && (
+              <TextInput
+                style={styles.textInput}
+                placeholder="Nhập câu trả lời của bạn..."
+                multiline
+                value={answers[currentQuestion._id] || ""}
+                onChangeText={(text) => handleAnswer(currentQuestion._id, text, "text")}
+              />
+            )}
+
+            {/* Render câu hỏi dạng SINGLE/MULTIPLE (Lưu index) */}
+            {(currentQuestion?.type === "single" || currentQuestion?.type === "multiple") && (
+              <View style={styles.optionsList}>
+                {currentQuestion.options.map((option: string, idx: number) => {
+                  const isSelected = currentQuestion.type === "multiple"
+                    ? answers[currentQuestion._id]?.includes(idx)
+                    : answers[currentQuestion._id] === idx;
+
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      activeOpacity={0.7}
+                      style={[styles.optionItem, isSelected && styles.optionSelected]}
+                      onPress={() => handleAnswer(currentQuestion._id, idx, currentQuestion.type)}
+                    >
+                      <Text style={[styles.optionText, isSelected && styles.optionTextActive]}>{option}</Text>
+                      <View style={[styles.radio, isSelected && styles.radioActive]}>
+                        {isSelected && <CheckCircle2 size={16} color="#fff" />}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
         </ScrollView>
+
+        {/* Nút điều hướng */}
+        <View style={styles.footer}>
+          <View style={styles.buttonGroup}>
+            {currentIndex > 0 && (
+              <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentIndex(currentIndex - 1)}>
+                <ChevronLeft size={24} color="#64748b" />
+              </TouchableOpacity>
+            )}
+
+            {currentIndex < questions.length - 1 ? (
+              <TouchableOpacity
+                style={[styles.nextBtn, !canGoNext && styles.btnDisabled]}
+                disabled={!canGoNext}
+                onPress={() => setCurrentIndex(currentIndex + 1)}
+              >
+                <Text style={styles.nextBtnText}>Tiếp tục</Text>
+                <ChevronRight size={20} color="#fff" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.submitBtn, (!canGoNext || submitting) && styles.btnDisabled]}
+                disabled={!canGoNext || submitting}
+                onPress={handleSubmit}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.submitBtnText}>Hoàn thành</Text>
+                    <Send size={18} color="#fff" />
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -266,100 +267,33 @@ const DoSurveyScreen = () => {
 export default DoSurveyScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    height: 56,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
-  },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: "#1e293b" },
-  scrollContent: { padding: 16 },
-  infoCard: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-  },
-  surveyName: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#1e293b",
-    marginBottom: 12,
-  },
-  row: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
-  subText: { fontSize: 14, color: "#64748b" },
-  timeText: { fontSize: 14, color: "#ef4444", fontWeight: "500" },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 16,
-  },
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1e293b" },
-  questionCard: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-  },
-  questionLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#2563eb",
-    marginBottom: 4,
-  },
-  questionText: {
-    fontSize: 16,
-    color: "#1e293b",
-    fontWeight: "600",
-    marginBottom: 16,
-  },
-  textInput: {
-    backgroundColor: "#f8fafc",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 8,
-    padding: 12,
-    minHeight: 80,
-    textAlignVertical: "top",
-  },
-  optionsContainer: { gap: 10 },
-  optionItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    backgroundColor: "#fff",
-  },
-  optionSelected: {
-    borderColor: "#2563eb",
-    backgroundColor: "#eff6ff",
-  },
-  optionText: { marginLeft: 10, fontSize: 15, color: "#475569" },
-  optionTextActive: { color: "#2563eb", fontWeight: "600" },
-  submitBtn: {
-    backgroundColor: "#2563eb",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-    marginBottom: 40,
-  },
-  submitBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  container: { flex: 1, backgroundColor: "#fff" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f8faff" },
+  loadingText: { marginTop: 12, color: "#64748b", fontWeight: "600" },
+  progressContainer: { height: 6, backgroundColor: "#f1f5f9", width: "100%" },
+  progressBar: { height: 6, backgroundColor: "#2563eb" },
+  scrollContent: { padding: 24, paddingBottom: 100 },
+  headerInfo: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 },
+  stepText: { fontSize: 11, fontWeight: "900", color: "#2563eb", letterSpacing: 1, marginBottom: 4 },
+  surveyName: { fontSize: 14, fontWeight: "600", color: "#94a3b8", maxWidth: width * 0.6 },
+  badgeRequired: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#fffbeb", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  badgeText: { fontSize: 10, fontWeight: "700", color: "#f59e0b" },
+  questionContainer: { minHeight: 300 },
+  questionText: { fontSize: 22, fontWeight: "800", color: "#1e293b", lineHeight: 30, marginBottom: 24 },
+  textInput: { backgroundColor: "#f8fafc", borderRadius: 20, padding: 20, fontSize: 16, color: "#334155", minHeight: 150, textAlignVertical: "top", borderWidth: 1, borderColor: "#e2e8f0" },
+  optionsList: { gap: 12 },
+  optionItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 18, borderRadius: 16, borderWidth: 2, borderColor: "#f1f5f9", backgroundColor: "#f8fafc" },
+  optionSelected: { borderColor: "#2563eb", backgroundColor: "#eff6ff" },
+  optionText: { fontSize: 16, fontWeight: "600", color: "#64748b", flex: 1 },
+  optionTextActive: { color: "#1e3a8a" },
+  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: "#cbd5e1", alignItems: "center", justifyContent: "center", backgroundColor: "#fff" },
+  radioActive: { borderColor: "#2563eb", backgroundColor: "#2563eb" },
+  footer: { position: "absolute", bottom: 0, width: "100%", padding: 20, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#f1f5f9" },
+  buttonGroup: { flexDirection: "row", gap: 12 },
+  backBtn: { width: 56, height: 56, backgroundColor: "#f1f5f9", borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  nextBtn: { flex: 1, height: 56, backgroundColor: "#2563eb", borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  nextBtnText: { color: "#fff", fontSize: 16, fontWeight: "800" },
+  submitBtn: { flex: 1, height: 56, backgroundColor: "#1e293b", borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  submitBtnText: { color: "#fff", fontSize: 16, fontWeight: "800" },
+  btnDisabled: { opacity: 0.3 },
 });

@@ -171,6 +171,7 @@ function App() {
             <Route path="surveys/create" element={<CreateSurveyPage />} />
             <Route path="surveys/:id" element={<SurveyDetailPage />} />
             <Route path="chatbot" element={<ChatBotPage />} />
+               <Route path="chat" element={<ChatPage />} />
           </Route>
 
           <Route path="chapter">

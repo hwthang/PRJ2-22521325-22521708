@@ -9,8 +9,8 @@ import {
   SafeAreaView,
   Image,
 } from "react-native";
-import React, { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Search, MessageSquareDashed } from "lucide-react-native";
 import ConversationService from "@/services/ConversationService";
 import AuthService from "@/services/AuthService";
@@ -41,9 +41,17 @@ const ConversationScreen = () => {
     }
   };
 
-  useEffect(() => {
-    fetchConversations();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      // Gọi API khi màn hình được focus
+      fetchConversations();
+
+      return () => {
+        // (Tùy chọn) Thực hiện cleanup nếu cần khi người dùng rời khỏi màn hình
+        console.log("Màn hình đã mất focus");
+      };
+    }, []) // Dependency array trống để tránh việc gọi lại liên tục khi re-render
+  );
 
   const handleSearch = (text: string) => {
     setSearchText(text);
