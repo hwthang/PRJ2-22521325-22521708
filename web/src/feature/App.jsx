@@ -172,6 +172,9 @@ function App() {
             <Route path="surveys/:id" element={<SurveyDetailPage />} />
             <Route path="chatbot" element={<ChatBotPage />} />
                <Route path="chat" element={<ChatPage />} />
+                <Route path="incoming-call" element={<IncomingCallPage />} />
+            <Route path="waiting-call" element={<WaitingCallPage />} />
+            <Route path="video-call" element={<VideoCallPage />} />
           </Route>
 
           <Route path="chapter">

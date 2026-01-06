@@ -13,7 +13,7 @@ import {
   Check,
 } from "lucide-react";
 
-const API_URL = "https://chatbot-7buh.onrender.com/api/chatbot";
+const API_URL = "http://localhost:3000/api/chatbot";
 
 const ChatBotPage = () => {
   const [userId, setUserId] = useState("user1");
